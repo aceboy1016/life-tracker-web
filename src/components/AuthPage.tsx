@@ -31,15 +31,21 @@ export default function AuthPage() {
                 setMessage('パスワードリセットメールを送信しました');
             }
         } catch (e: unknown) {
-            const err = e as { code?: string };
+            const err = e as { code?: string; message?: string };
             if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
                 setError('メールアドレスまたはパスワードが正しくありません');
             } else if (err.code === 'auth/email-already-in-use') {
-                setError('このメールアドレスは既に使用されています');
+                setError('このメールアドレスは既に登録済みです。ログインページからお試しください');
             } else if (err.code === 'auth/weak-password') {
                 setError('パスワードは6文字以上にしてください');
+            } else if (err.code === 'auth/too-many-requests') {
+                setError('試行回数が多すぎます。しばらく待ってから再度お試しください');
+            } else if (err.code === 'auth/invalid-api-key') {
+                setError('設定エラー: Firebase APIキーが正しくありません');
+            } else if (err.code === 'auth/network-request-failed') {
+                setError('ネットワークエラー。接続を確認してください');
             } else {
-                setError('エラーが発生しました。もう一度お試しください');
+                setError(`エラー: ${err.code ?? err.message ?? '不明なエラー'}`);
             }
         } finally {
             setLoading(false);
