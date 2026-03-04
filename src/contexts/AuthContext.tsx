@@ -15,7 +15,7 @@ import {
     signOut,
     sendPasswordResetEmail,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFirebaseAuth } from '@/lib/firebase';
 
 interface AuthContextType {
     user: User | null;
@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const auth = getFirebaseAuth();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user);
             setLoading(false);
@@ -41,19 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const signIn = async (email: string, password: string) => {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
     };
 
     const signUp = async (email: string, password: string) => {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
     };
 
     const logOut = async () => {
-        await signOut(auth);
+        await signOut(getFirebaseAuth());
     };
 
     const resetPassword = async (email: string) => {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(getFirebaseAuth(), email);
     };
 
     return (

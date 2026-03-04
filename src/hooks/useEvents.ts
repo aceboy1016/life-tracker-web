@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     collection,
     query,
-    where,
     orderBy,
     onSnapshot,
     addDoc,
@@ -14,7 +13,7 @@ import {
     serverTimestamp,
     Timestamp,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDB } from '@/lib/firebase';
 import { LifeEvent, EventCategory } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -30,6 +29,7 @@ export function useEvents() {
             return;
         }
 
+        const db = getFirebaseDB();
         const q = query(
             collection(db, 'users', user.uid, 'events'),
             orderBy('name', 'asc')
@@ -62,6 +62,7 @@ export function useEvents() {
     const createEvent = useCallback(
         async (data: { name: string; category: EventCategory; notes: string; lastExecutedDate?: Date | null }) => {
             if (!user) return;
+            const db = getFirebaseDB();
             await addDoc(collection(db, 'users', user.uid, 'events'), {
                 name: data.name,
                 category: data.category,
@@ -77,6 +78,7 @@ export function useEvents() {
     const markAsExecuted = useCallback(
         async (eventId: string) => {
             if (!user) return;
+            const db = getFirebaseDB();
             const ref = doc(db, 'users', user.uid, 'events', eventId);
             await updateDoc(ref, { lastExecutedDate: new Date() });
         },
@@ -89,6 +91,7 @@ export function useEvents() {
             data: { name?: string; category?: EventCategory; notes?: string; lastExecutedDate?: Date | null }
         ) => {
             if (!user) return;
+            const db = getFirebaseDB();
             const ref = doc(db, 'users', user.uid, 'events', eventId);
             await updateDoc(ref, { ...data });
         },
@@ -98,6 +101,7 @@ export function useEvents() {
     const deleteEvent = useCallback(
         async (eventId: string) => {
             if (!user) return;
+            const db = getFirebaseDB();
             await deleteDoc(doc(db, 'users', user.uid, 'events', eventId));
         },
         [user]
