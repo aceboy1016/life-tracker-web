@@ -12,28 +12,24 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+let _app: FirebaseApp | null = null;
+let _auth: Auth | null = null;
+let _db: Firestore | null = null;
 
-function initFirebase() {
-  if (!app) {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
+function init() {
+  if (!_app) {
+    _app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    _auth = getAuth(_app);
+    _db = getFirestore(_app);
   }
 }
 
 export function getFirebaseAuth(): Auth {
-  initFirebase();
-  return auth;
+  init();
+  return _auth!;
 }
 
 export function getFirebaseDB(): Firestore {
-  initFirebase();
-  return db;
+  init();
+  return _db!;
 }
-
-// These are used in contexts/hooks that are always client-side
-// They will initialize on first access
-export { auth, db };
