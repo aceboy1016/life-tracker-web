@@ -16,7 +16,7 @@ interface EventDetailModalProps {
 }
 
 export default function EventDetailModal({ event, onClose, onMark, onDelete, onUpdate }: EventDetailModalProps) {
-    const cat = CATEGORY_CONFIG[event.category];
+    const cat = CATEGORY_CONFIG[event.category] ?? CATEGORY_CONFIG['general'];
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(event.name);
     const [notes, setNotes] = useState(event.notes);
@@ -101,8 +101,8 @@ export default function EventDetailModal({ event, onClose, onMark, onDelete, onU
                                         type="button"
                                         onClick={() => setCategory(key)}
                                         className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${category === key
-                                                ? 'bg-indigo-500/30 border-indigo-400/60 text-white'
-                                                : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80'
+                                            ? 'bg-indigo-500/30 border-indigo-400/60 text-white'
+                                            : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80'
                                             }`}
                                     >
                                         <span>{cfg.emoji}</span>

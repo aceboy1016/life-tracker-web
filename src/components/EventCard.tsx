@@ -44,7 +44,7 @@ const urgencyTimeColor: Record<string, string> = {
 };
 
 export default function EventCard({ event, onMark, onDelete, onClick }: EventCardProps) {
-    const cat = CATEGORY_CONFIG[event.category];
+    const cat = CATEGORY_CONFIG[event.category] ?? CATEGORY_CONFIG['general'];
     const { text: elapsed, urgency } = getElapsedStyle(event.lastExecutedDate);
 
     return (
