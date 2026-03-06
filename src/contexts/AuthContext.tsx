@@ -33,12 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const auth = getFirebaseAuth();
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
+        try {
+            const auth = getFirebaseAuth();
+            const unsubscribe = onAuthStateChanged(
+                auth,
+                (user) => {
+                    setUser(user);
+                    setLoading(false);
+                },
+                (error) => {
+                    console.error('Auth state error:', error);
+                    setLoading(false);
+                }
+            );
+            return unsubscribe;
+        } catch (error) {
+            console.error('Firebase init error:', error);
             setLoading(false);
-        });
-        return unsubscribe;
+        }
     }, []);
 
     const signIn = async (email: string, password: string) => {
