@@ -4,7 +4,8 @@ export type EventCategory =
     | 'work'
     | 'hobby'
     | 'social'
-    | 'household';
+    | 'household'
+    | 'electronics';
 
 export interface LifeEvent {
     id: string;
@@ -67,5 +68,13 @@ export const CATEGORY_CONFIG: Record<
         bgColor: 'bg-emerald-100',
         darkColor: 'text-emerald-300',
         darkBg: 'bg-emerald-900/40',
+    },
+    electronics: {
+        label: '電子機器',
+        emoji: '💻',
+        color: 'text-cyan-700',
+        bgColor: 'bg-cyan-100',
+        darkColor: 'text-cyan-300',
+        darkBg: 'bg-cyan-900/40',
     },
 };
