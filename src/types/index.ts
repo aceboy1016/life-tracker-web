@@ -17,14 +17,14 @@ export interface LifeEvent {
     createdAt?: Date;
 }
 
-export const CATEGORY_CONFIG: Record<EventCategory, { label: string; emoji: string; tile: string }> = {
-    general: { label: 'その他', emoji: '📌', tile: 'bg-slate-500/12' },
-    health: { label: '健康', emoji: '❤️', tile: 'bg-rose-500/12' },
-    work: { label: '仕事', emoji: '💼', tile: 'bg-blue-500/12' },
-    hobby: { label: '趣味', emoji: '🎯', tile: 'bg-violet-500/12' },
-    social: { label: 'ソーシャル', emoji: '👥', tile: 'bg-amber-500/14' },
-    household: { label: '家事', emoji: '🏠', tile: 'bg-emerald-500/12' },
-    electronics: { label: '電子機器', emoji: '💻', tile: 'bg-cyan-500/12' },
+export const CATEGORY_CONFIG: Record<EventCategory, { label: string; en: string; emoji: string }> = {
+    general: { en: 'OTHER', label: 'その他', emoji: '📌' },
+    health: { en: 'HEALTH', label: '健康', emoji: '❤️' },
+    work: { en: 'WORK', label: '仕事', emoji: '💼' },
+    hobby: { en: 'HOBBY', label: '趣味', emoji: '🎯' },
+    social: { en: 'SOCIAL', label: 'ソーシャル', emoji: '👥' },
+    household: { en: 'HOUSEHOLD', label: '家事', emoji: '🏠' },
+    electronics: { en: 'DEVICES', label: '電子機器', emoji: '💻' },
 };
 
 export const CATEGORY_ENTRIES = Object.entries(CATEGORY_CONFIG) as [

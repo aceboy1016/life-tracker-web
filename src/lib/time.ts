@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-
 export type Urgency = 'never' | 'fresh' | 'ok' | 'warn' | 'over';
 
 const HOUR = 3600_000;
@@ -49,20 +47,10 @@ export function toLocalInputValue(date: Date): string {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export const URGENCY_META: Record<Urgency, { label: string; text: string; soft: string; dot: string }> = {
-    never: { label: '未記録', text: 'text-ink-3', soft: 'bg-surface-2', dot: 'bg-ink-3' },
-    fresh: { label: '24時間以内', text: 'text-fresh', soft: 'bg-fresh/12', dot: 'bg-fresh' },
-    ok: { label: '3日以内', text: 'text-ok', soft: 'bg-ok/12', dot: 'bg-ok' },
-    warn: { label: '3〜7日', text: 'text-warn', soft: 'bg-warn/12', dot: 'bg-warn' },
-    over: { label: '1週間以上', text: 'text-over', soft: 'bg-over/12', dot: 'bg-over' },
+export const URGENCY_META: Record<Urgency, { label: string; text: string; bar: string }> = {
+    never: { label: '未記録', text: 'text-ink-3', bar: 'border-l-ink-3' },
+    fresh: { label: '24時間以内', text: 'text-fresh', bar: 'border-l-fresh' },
+    ok: { label: '3日以内', text: 'text-ok', bar: 'border-l-ok' },
+    warn: { label: '3〜7日', text: 'text-warn', bar: 'border-l-warn' },
+    over: { label: '1週間以上', text: 'text-over', bar: 'border-l-over' },
 };
-
-/** Current timestamp that re-renders every minute so relative times stay fresh. */
-export function useNow(intervalMs = 60_000): number {
-    const [now, setNow] = useState(() => Date.now());
-    useEffect(() => {
-        const id = setInterval(() => setNow(Date.now()), intervalMs);
-        return () => clearInterval(id);
-    }, [intervalMs]);
-    return now;
-}

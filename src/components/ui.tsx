@@ -5,37 +5,57 @@ import { X } from 'lucide-react';
 import { CATEGORY_ENTRIES, EventCategory } from '@/types';
 
 export const inputClass =
-    'w-full bg-surface-2/60 border border-line rounded-xl px-4 py-3 text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/30 focus:bg-surface transition-colors';
+    'w-full bg-surface-2 border border-line rounded-xl px-4 py-3 text-ink font-medium placeholder:text-ink-3 placeholder:font-normal focus:outline-none focus:border-ink/40 focus:bg-surface';
 
 export const primaryButtonClass =
-    'inline-flex items-center justify-center gap-2 bg-ink text-canvas font-semibold rounded-xl px-4 py-3.5 transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none';
+    'inline-flex items-center justify-center gap-2 bg-ink text-canvas font-bold rounded-xl px-4 py-3.5 hover:opacity-90 disabled:opacity-35 disabled:pointer-events-none';
 
 export const secondaryButtonClass =
-    'inline-flex items-center justify-center gap-2 bg-surface-2 text-ink font-medium rounded-xl px-4 py-3 transition-all hover:bg-ink/10 active:scale-[0.98] disabled:opacity-40';
+    'inline-flex items-center justify-center gap-2 bg-surface-2 border border-line text-ink font-bold rounded-xl px-4 py-3 hover:bg-ink/5 disabled:opacity-35';
 
-/** App mark: an elapsed-time arc with a "fresh" dot at its end. */
-export function Logo({ size = 36 }: { size?: number }) {
+/** Card with a colored left rule, as used throughout the app. */
+export const cardClass = 'bg-surface border border-line border-l-4 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.05)]';
+
+/** Small uppercase label, e.g. "HEALTH" above a title. */
+export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
+    return <p className={`text-[11px] font-bold tracking-[0.16em] uppercase text-ink-3 ${className}`}>{children}</p>;
+}
+
+/** Emoji + bold English title + small Japanese subtitle. */
+export function SectionTitle({
+    emoji,
+    title,
+    subtitle,
+    trailing,
+    size = 'md',
+}: {
+    emoji: string;
+    title: string;
+    subtitle?: string;
+    trailing?: ReactNode;
+    size?: 'md' | 'lg';
+}) {
     return (
-        <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-            <rect width="40" height="40" rx="11" className="fill-ink" />
-            <path
-                d="M20 9.5a10.5 10.5 0 1 1-10.5 10.5"
-                fill="none"
-                strokeWidth="3.2"
-                strokeLinecap="round"
-                className="stroke-canvas"
-            />
-            <circle cx="9.5" cy="20" r="3" className="fill-fresh" />
-            <path d="M20 14.5V20l3.5 2.5" fill="none" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className="stroke-canvas" />
-        </svg>
+        <div className="flex items-center gap-3">
+            <span className={size === 'lg' ? 'text-4xl' : 'text-3xl'} aria-hidden="true">
+                {emoji}
+            </span>
+            <div className="min-w-0 flex-1">
+                <h2 className={`font-black tracking-tight text-ink leading-tight ${size === 'lg' ? 'text-[28px]' : 'text-[22px]'}`}>
+                    {title}
+                </h2>
+                {subtitle && <p className="text-[13px] font-medium text-ink-3 mt-0.5">{subtitle}</p>}
+            </div>
+            {trailing}
+        </div>
     );
 }
 
 export function Label({ children, hint }: { children: ReactNode; hint?: string }) {
     return (
-        <p className="text-[13px] font-semibold text-ink-2 mb-2">
+        <p className="text-[13px] font-bold text-ink mb-2">
             {children}
-            {hint && <span className="font-normal text-ink-3 ml-1.5">{hint}</span>}
+            {hint && <span className="font-medium text-ink-3 ml-1.5">{hint}</span>}
         </p>
     );
 }
@@ -57,22 +77,22 @@ export function Sheet({ title, onClose, children }: { title?: ReactNode; onClose
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
-            <div className="relative w-full sm:max-w-md max-h-[92dvh] overflow-y-auto bg-surface rounded-t-[28px] sm:rounded-[28px] shadow-2xl animate-sheet-up pb-[env(safe-area-inset-bottom)]">
+            <div className="absolute inset-0 bg-black/45" onClick={onClose} />
+            <div className="relative w-full sm:max-w-md max-h-[92dvh] overflow-y-auto bg-canvas rounded-t-3xl sm:rounded-3xl shadow-2xl pb-[env(safe-area-inset-bottom)]">
                 <div className="sm:hidden flex justify-center pt-2.5">
-                    <div className="w-10 h-1 rounded-full bg-ink/15" />
+                    <div className="w-10 h-1 rounded-full bg-ink/20" />
                 </div>
-                <div className="flex items-center justify-between gap-3 px-5 pt-4 sm:pt-5">
+                <div className="flex items-start justify-between gap-3 px-5 pt-4 sm:pt-6">
                     <div className="min-w-0 flex-1">{title}</div>
                     <button
                         onClick={onClose}
                         aria-label="閉じる"
-                        className="w-9 h-9 shrink-0 rounded-full bg-surface-2 flex items-center justify-center text-ink-2 hover:text-ink transition-colors"
+                        className="w-9 h-9 shrink-0 rounded-full bg-surface border border-line flex items-center justify-center text-ink-2 hover:text-ink"
                     >
-                        <X size={18} />
+                        <X size={18} strokeWidth={2.5} />
                     </button>
                 </div>
-                <div className="px-5 pt-4 pb-6">{children}</div>
+                <div className="px-5 pt-5 pb-6">{children}</div>
             </div>
         </div>
     );
@@ -81,26 +101,76 @@ export function Sheet({ title, onClose, children }: { title?: ReactNode; onClose
 export function CategoryPicker({ value, onChange }: { value: EventCategory; onChange: (c: EventCategory) => void }) {
     return (
         <div className="flex flex-wrap gap-2">
-            {CATEGORY_ENTRIES.map(([key, cfg]) => {
-                const active = value === key;
-                return (
-                    <button
-                        key={key}
-                        type="button"
-                        onClick={() => onChange(key)}
-                        aria-pressed={active}
-                        className={`flex items-center gap-1.5 pl-2.5 pr-3.5 py-2 rounded-full border text-sm font-medium transition-all ${
-                            active
-                                ? 'bg-ink text-canvas border-ink'
-                                : 'bg-surface border-line text-ink-2 hover:border-ink/25 hover:text-ink'
-                        }`}
-                    >
-                        <span className="text-base leading-none">{cfg.emoji}</span>
-                        {cfg.label}
-                    </button>
-                );
-            })}
+            {CATEGORY_ENTRIES.map(([key, cfg]) => (
+                <Chip key={key} active={value === key} onClick={() => onChange(key)}>
+                    <span>{cfg.emoji}</span>
+                    {cfg.label}
+                </Chip>
+            ))}
         </div>
+    );
+}
+
+export function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={active}
+            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-bold border ${
+                active ? 'bg-ink text-canvas border-ink' : 'bg-surface border-line text-ink-2 hover:text-ink'
+            }`}
+        >
+            {children}
+        </button>
+    );
+}
+
+export function Segmented<T extends string>({
+    value,
+    options,
+    onChange,
+    size = 'md',
+}: {
+    value: T;
+    options: [T, string][];
+    onChange: (v: T) => void;
+    size?: 'sm' | 'md';
+}) {
+    return (
+        <div className="flex p-1 bg-ink/[0.06] rounded-xl">
+            {options.map(([key, label]) => (
+                <button
+                    key={key}
+                    type="button"
+                    onClick={() => onChange(key)}
+                    aria-pressed={value === key}
+                    className={`flex-1 rounded-lg font-bold ${size === 'sm' ? 'px-3 py-1.5 text-xs' : 'py-2.5 text-[13px]'} ${
+                        value === key ? 'bg-surface text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
+                    }`}
+                >
+                    {label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+export function Switch({ checked, onChange, disabled, label }: { checked: boolean; onChange: () => void; disabled?: boolean; label: string }) {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            aria-label={label}
+            disabled={disabled}
+            onClick={onChange}
+            className={`relative w-[52px] h-8 shrink-0 rounded-full disabled:opacity-40 ${checked ? 'bg-fresh' : 'bg-ink/15'}`}
+        >
+            <span
+                className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow ${checked ? 'left-[24px]' : 'left-1'}`}
+            />
+        </button>
     );
 }
 
@@ -123,16 +193,16 @@ export function Toast({ toast, onDismiss }: { toast: ToastState | null; onDismis
             <div
                 key={toast.id}
                 role="status"
-                className="pointer-events-auto flex items-center gap-4 bg-ink text-canvas rounded-2xl pl-4 pr-2 py-2 shadow-2xl animate-sheet-up max-w-md"
+                className="pointer-events-auto flex items-center gap-4 bg-ink text-canvas rounded-xl pl-4 pr-2 py-2 shadow-2xl max-w-md"
             >
-                <span className="text-sm font-medium py-1.5">{toast.message}</span>
+                <span className="text-sm font-bold py-1.5">{toast.message}</span>
                 {toast.onUndo && (
                     <button
                         onClick={() => {
                             toast.onUndo?.();
                             onDismiss();
                         }}
-                        className="text-sm font-semibold px-3 py-1.5 rounded-xl bg-canvas/15 hover:bg-canvas/25 transition-colors"
+                        className="text-sm font-bold px-3 py-1.5 rounded-lg bg-canvas/15 hover:bg-canvas/25"
                     >
                         元に戻す
                     </button>

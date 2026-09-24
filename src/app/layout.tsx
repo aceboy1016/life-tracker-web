@@ -6,7 +6,7 @@ import Providers from './providers';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
+  weight: ['400', '500', '700', '900'],
   variable: '--font-noto-jp',
   preload: false,
 });
@@ -26,8 +26,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f4ef' },
-    { media: '(prefers-color-scheme: dark)', color: '#111110' },
+    { media: '(prefers-color-scheme: light)', color: '#eeeeec' },
+    { media: '(prefers-color-scheme: dark)', color: '#0e0e0d' },
   ],
 };
 

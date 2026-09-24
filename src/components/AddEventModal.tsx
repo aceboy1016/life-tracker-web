@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { EventCategory } from '@/types';
 import { toLocalInputValue } from '@/lib/time';
-import { CategoryPicker, Label, Sheet, inputClass, primaryButtonClass } from '@/components/ui';
+import { CategoryPicker, Label, SectionTitle, Segmented, Sheet, inputClass, primaryButtonClass } from '@/components/ui';
 
 interface AddEventModalProps {
     initialName?: string;
@@ -18,11 +18,11 @@ interface AddEventModalProps {
 
 type LastDone = 'never' | 'now' | 'yesterday' | 'custom';
 
-const LAST_DONE_OPTIONS: { key: LastDone; label: string }[] = [
-    { key: 'never', label: 'まだ' },
-    { key: 'now', label: '今日' },
-    { key: 'yesterday', label: '昨日' },
-    { key: 'custom', label: '日付を指定' },
+const LAST_DONE_OPTIONS: [LastDone, string][] = [
+    ['never', 'まだ'],
+    ['now', '今日'],
+    ['yesterday', '昨日'],
+    ['custom', '日付指定'],
 ];
 
 export default function AddEventModal({ initialName = '', onClose, onAdd }: AddEventModalProps) {
@@ -64,10 +64,10 @@ export default function AddEventModal({ initialName = '', onClose, onAdd }: AddE
     };
 
     return (
-        <Sheet title={<h2 className="text-xl font-bold text-ink">新しく記録する</h2>} onClose={onClose}>
+        <Sheet title={<SectionTitle emoji="📝" title="New Item" subtitle="新しい項目を追加" />} onClose={onClose}>
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                    <Label>なにを記録する？</Label>
+                    <Label>名前</Label>
                     <input
                         type="text"
                         value={name}
@@ -87,22 +87,8 @@ export default function AddEventModal({ initialName = '', onClose, onAdd }: AddE
                 </div>
 
                 <div>
-                    <Label>最後にやったのは？</Label>
-                    <div className="grid grid-cols-4 gap-1 p-1 bg-surface-2 rounded-xl">
-                        {LAST_DONE_OPTIONS.map((opt) => (
-                            <button
-                                key={opt.key}
-                                type="button"
-                                onClick={() => setLastDone(opt.key)}
-                                aria-pressed={lastDone === opt.key}
-                                className={`py-2 rounded-lg text-[13px] font-medium transition-all ${
-                                    lastDone === opt.key ? 'bg-surface text-ink shadow-sm' : 'text-ink-2 hover:text-ink'
-                                }`}
-                            >
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
+                    <Label>最後にやった日</Label>
+                    <Segmented value={lastDone} onChange={setLastDone} options={LAST_DONE_OPTIONS} />
                     {lastDone === 'custom' && (
                         <input
                             type="datetime-local"
