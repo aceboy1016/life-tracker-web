@@ -54,6 +54,9 @@ export function useEvents() {
             });
             setEvents(fetchedEvents);
             setLoading(false);
+        }, (error) => {
+            console.error('Failed to load events:', error);
+            setLoading(false);
         });
 
         return unsubscribe;
@@ -76,11 +79,11 @@ export function useEvents() {
     );
 
     const markAsExecuted = useCallback(
-        async (eventId: string) => {
+        async (eventId: string, date: Date = new Date()) => {
             if (!user) return;
             const db = getFirebaseDB();
             const ref = doc(db, 'users', user.uid, 'events', eventId);
-            await updateDoc(ref, { lastExecutedDate: new Date() });
+            await updateDoc(ref, { lastExecutedDate: date });
         },
         [user]
     );
