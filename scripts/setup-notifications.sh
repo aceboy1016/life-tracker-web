@@ -25,15 +25,17 @@ command -v vercel >/dev/null || { echo "Vercel CLI が見つかりません（np
 read -rp "VAPID 公開鍵を貼り付けて Enter: " VAPID_KEY
 [ -n "$VAPID_KEY" ] || { echo "VAPID 公開鍵が空です"; exit 1; }
 
+# $3: "config" for values meant to be public (the VAPID public key is sent to browsers),
+# "secret" for credentials.
 set_env() {
     vercel env rm "$1" production --yes >/dev/null 2>&1 || true
-    printf '%s' "$2" | vercel env add "$1" production >/dev/null
+    printf '%s' "$2" | vercel env add "$1" production --type "$3" >/dev/null
     echo "✓ $1"
 }
 
-set_env NEXT_PUBLIC_FIREBASE_VAPID_KEY "$VAPID_KEY"
-set_env FIREBASE_SERVICE_ACCOUNT "$(tr -d '\n' < "$SA_FILE")"
-set_env CRON_SECRET "$(openssl rand -hex 32)"
+set_env NEXT_PUBLIC_FIREBASE_VAPID_KEY "$VAPID_KEY" config
+set_env FIREBASE_SERVICE_ACCOUNT "$(tr -d '\n' < "$SA_FILE")" secret
+set_env CRON_SECRET "$(openssl rand -hex 32)" secret
 
 echo "本番に再デプロイします…"
 vercel deploy --prod
