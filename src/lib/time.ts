@@ -12,25 +12,27 @@ export function getUrgency(date: Date | null, now: number): Urgency {
     return 'over';
 }
 
-/** Compact elapsed time split into a number and a unit, e.g. { value: '12', unit: '日' }. */
-export function formatElapsed(date: Date | null, now: number): { value: string; unit: string } {
-    if (!date) return { value: '—', unit: '' };
+/**
+ * Time since `date` as number/unit parts: minutes or hours within the first day,
+ * then calendar years / months / days (e.g. 1年2ヶ月3日).
+ */
+export function elapsedParts(date: Date | null, now: number): { value: number; unit: string }[] | null {
+    if (!date) return null;
     const diff = Math.max(0, now - date.getTime());
     const minutes = Math.floor(diff / 60_000);
-    if (minutes < 1) return { value: 'たった今', unit: '' };
-    if (minutes < 60) return { value: String(minutes), unit: '分' };
+    if (minutes < 1) return [];
+    if (minutes < 60) return [{ value: minutes, unit: '分' }];
     const hours = Math.floor(diff / HOUR);
-    if (hours < 24) return { value: String(hours), unit: '時間' };
-    const days = Math.floor(diff / DAY);
-    if (days < 60) return { value: String(days), unit: '日' };
-    if (days < 365) return { value: String(Math.floor(days / 30)), unit: 'ヶ月' };
-    return { value: String(Math.floor(days / 365)), unit: '年' };
+    if (hours < 24) return [{ value: hours, unit: '時間' }];
+    const parts = spanParts(toYMD(date), toYMD(now));
+    return parts.length ? parts : [{ value: 1, unit: '日' }];
 }
 
 export function formatElapsedText(date: Date | null, now: number): string {
-    if (!date) return 'まだ記録なし';
-    const { value, unit } = formatElapsed(date, now);
-    return unit ? `${value}${unit}前` : value;
+    const parts = elapsedParts(date, now);
+    if (!parts) return 'まだ記録なし';
+    if (parts.length === 0) return 'たった今';
+    return parts.map((p) => `${p.value}${p.unit}`).join('') + '前';
 }
 
 export function isSameDay(a: Date, b: Date): boolean {
@@ -93,8 +95,8 @@ export function daysBetween(from: YMD, to: YMD): number {
     return dayNumber(to) - dayNumber(from);
 }
 
-/** "2年3ヶ月" style breakdown of the time between two calendar dates. */
-export function formatSpan(from: YMD, to: YMD): string {
+/** Years / months / days between two calendar dates, zero parts omitted. */
+export function spanParts(from: YMD, to: YMD): { value: number; unit: string }[] {
     let years = to.y - from.y;
     let months = to.m - from.m;
     let days = to.d - from.d;
@@ -106,12 +108,17 @@ export function formatSpan(from: YMD, to: YMD): string {
         years -= 1;
         months += 12;
     }
-    if (years < 0) return '';
-    const parts = [];
-    if (years) parts.push(`${years}年`);
-    if (months) parts.push(`${months}ヶ月`);
-    if (!years && days) parts.push(`${days}日`);
-    return parts.join('') || '今日';
+    if (years < 0) return [];
+    return [
+        { value: years, unit: '年' },
+        { value: months, unit: 'ヶ月' },
+        { value: days, unit: '日' },
+    ].filter((p) => p.value > 0);
+}
+
+/** "2年3ヶ月14日" style breakdown of the time between two calendar dates. */
+export function formatSpan(from: YMD, to: YMD): string {
+    return spanParts(from, to).map((p) => `${p.value}${p.unit}`).join('') || '今日';
 }
 
 /** The next month/day occurrence on or after `today` (Feb 29 falls back to Feb 28 in common years). */

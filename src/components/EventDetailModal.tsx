@@ -9,7 +9,7 @@ import type { EventInput } from '@/hooks/useEvents';
 import { IconTile } from '@/lib/icons';
 import {
     daysBetween,
-    formatElapsed,
+    elapsedParts,
     formatSpan,
     formatYMD,
     fromDateInputValue,
@@ -27,6 +27,7 @@ import {
     inputClass,
     primaryButtonClass,
     secondaryButtonClass,
+    SpanText,
 } from '@/components/ui';
 
 interface EventDetailModalProps {
@@ -204,6 +205,18 @@ export default function EventDetailModal({ event, now, onClose, onMark, onDelete
                     </button>
                     {deleteButton}
                 </div>
+
+                {event.kind === 'routine' && event.lastExecutedDate && (
+                    <button
+                        onClick={async () => {
+                            await onUpdate(event.id, { kind: 'milestone' });
+                            onClose();
+                        }}
+                        className="w-full pt-3 text-[13px] text-ink-3 hover:text-ink"
+                    >
+                        一度きりの日なら「記念日・できごと」に変更
+                    </button>
+                )}
             </div>
         </Sheet>
     );
@@ -246,15 +259,22 @@ function MilestoneSummary({ event, now }: { event: LifeEvent; now: number }) {
 }
 
 function RoutineSummary({ event, now }: { event: LifeEvent; now: number }) {
-    const { value, unit } = formatElapsed(event.lastExecutedDate, now);
+    const parts = elapsedParts(event.lastExecutedDate, now);
     return (
         <div className={`${cardClass} px-5 py-5`}>
             <p className="text-[12px] text-ink-3">前回から</p>
-            {event.lastExecutedDate ? (
+            {event.lastExecutedDate && parts ? (
                 <>
-                    <p className="mt-1 text-ink leading-none tabular-nums">
-                        <span className={`${unit ? 'text-[44px]' : 'text-[28px]'} font-semibold tracking-tight`}>{value}</span>
-                        {unit && <span className="text-[16px] text-ink-2 ml-1">{unit}</span>}
+                    <p className="mt-2 leading-none">
+                        {parts.length === 0 ? (
+                            <span className="text-[28px] font-semibold text-ink">たった今</span>
+                        ) : (
+                            <SpanText
+                                parts={parts}
+                                numberClass={parts.length > 2 ? 'text-[34px] font-semibold tracking-tight' : 'text-[44px] font-semibold tracking-tight'}
+                                unitClass="text-[15px] text-ink-2 ml-0.5 mr-1.5"
+                            />
+                        )}
                     </p>
                     <p className="text-[13px] text-ink-3 mt-3">{format(event.lastExecutedDate, 'yyyy年M月d日(E) HH:mm', { locale: ja })}</p>
                 </>
