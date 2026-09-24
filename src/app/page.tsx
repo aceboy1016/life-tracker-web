@@ -10,7 +10,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-dvh bg-canvas flex items-center justify-center">
-        <p className="text-2xl font-black tracking-tight text-ink">⏱️ LifeTracker</p>
+        <p className="text-[13px] font-medium text-ink-3 tracking-wide">LifeTracker</p>
       </div>
     );
   }

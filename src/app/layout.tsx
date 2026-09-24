@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Noto_Sans_JP } from 'next/font/google';
+import { Inter, Zen_Kaku_Gothic_New } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const notoSansJP = Noto_Sans_JP({
+const zen = Zen_Kaku_Gothic_New({
   subsets: ['latin'],
-  weight: ['400', '500', '700', '900'],
-  variable: '--font-noto-jp',
+  weight: ['400', '500', '700'],
+  variable: '--font-zen',
   preload: false,
 });
 
@@ -26,14 +26,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#eeeeec' },
-    { media: '(prefers-color-scheme: dark)', color: '#0e0e0d' },
+    { media: '(prefers-color-scheme: light)', color: '#f7f6f3' },
+    { media: '(prefers-color-scheme: dark)', color: '#161615' },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja" className={`${inter.variable} ${notoSansJP.variable}`}>
+    <html lang="ja" className={`${inter.variable} ${zen.variable}`}>
       <body className="font-sans bg-canvas text-ink antialiased">
         <Providers>
           {children}

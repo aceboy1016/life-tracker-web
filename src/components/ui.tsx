@@ -2,62 +2,43 @@
 
 import { ReactNode, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { CATEGORY_ENTRIES, EventCategory } from '@/types';
+import { Glyph, ICON_KEYS, ICONS } from '@/lib/icons';
 
 export const inputClass =
-    'w-full bg-surface-2 border border-line rounded-xl px-4 py-3 text-ink font-medium placeholder:text-ink-3 placeholder:font-normal focus:outline-none focus:border-ink/40 focus:bg-surface';
+    'w-full bg-surface border border-line rounded-2xl px-4 py-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25';
 
 export const primaryButtonClass =
-    'inline-flex items-center justify-center gap-2 bg-ink text-canvas font-bold rounded-xl px-4 py-3.5 hover:opacity-90 disabled:opacity-35 disabled:pointer-events-none';
+    'inline-flex items-center justify-center gap-2 h-12 px-5 bg-ink text-canvas text-[15px] font-medium rounded-2xl hover:opacity-90 disabled:opacity-30 disabled:pointer-events-none';
 
 export const secondaryButtonClass =
-    'inline-flex items-center justify-center gap-2 bg-surface-2 border border-line text-ink font-bold rounded-xl px-4 py-3 hover:bg-ink/5 disabled:opacity-35';
+    'inline-flex items-center justify-center gap-2 h-12 px-4 bg-surface border border-line text-ink text-[14px] font-medium rounded-2xl hover:bg-surface-2 disabled:opacity-30';
 
-/** Card with a colored left rule, as used throughout the app. */
-export const cardClass = 'bg-surface border border-line border-l-4 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.05)]';
+export const cardClass = 'bg-surface border border-line rounded-[20px]';
 
-/** Small uppercase label, e.g. "HEALTH" above a title. */
-export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
-    return <p className={`text-[11px] font-bold tracking-[0.16em] uppercase text-ink-3 ${className}`}>{children}</p>;
-}
-
-/** Emoji + bold English title + small Japanese subtitle. */
-export function SectionTitle({
-    emoji,
-    title,
-    subtitle,
-    trailing,
-    size = 'md',
-}: {
-    emoji: string;
-    title: string;
-    subtitle?: string;
-    trailing?: ReactNode;
-    size?: 'md' | 'lg';
-}) {
+/** Grouped-list header: small muted title with an optional count. */
+export function GroupHeader({ title, count, action }: { title: string; count?: number; action?: ReactNode }) {
     return (
-        <div className="flex items-center gap-3">
-            <span className={size === 'lg' ? 'text-4xl' : 'text-3xl'} aria-hidden="true">
-                {emoji}
-            </span>
-            <div className="min-w-0 flex-1">
-                <h2 className={`font-black tracking-tight text-ink leading-tight ${size === 'lg' ? 'text-[28px]' : 'text-[22px]'}`}>
-                    {title}
-                </h2>
-                {subtitle && <p className="text-[13px] font-medium text-ink-3 mt-0.5">{subtitle}</p>}
-            </div>
-            {trailing}
+        <div className="flex items-baseline gap-2 px-1 mb-2.5">
+            <h2 className="text-[13px] font-medium text-ink-2">{title}</h2>
+            {count !== undefined && <span className="text-[12px] text-ink-3 tabular-nums">{count}</span>}
+            {action && <div className="ml-auto">{action}</div>}
         </div>
     );
 }
 
 export function Label({ children, hint }: { children: ReactNode; hint?: string }) {
     return (
-        <p className="text-[13px] font-bold text-ink mb-2">
+        <p className="text-[12px] font-medium text-ink-2 mb-2 px-1">
             {children}
-            {hint && <span className="font-medium text-ink-3 ml-1.5">{hint}</span>}
+            {hint && <span className="text-ink-3 ml-1.5">{hint}</span>}
         </p>
     );
+}
+
+export function Pill({ children, tone = 'muted' }: { children: ReactNode; tone?: 'muted' | 'alert' | 'accent' }) {
+    const cls =
+        tone === 'alert' ? 'bg-alert-soft text-alert' : tone === 'accent' ? 'bg-accent-soft text-accent' : 'bg-surface-2 text-ink-2';
+    return <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${cls}`}>{children}</span>;
 }
 
 /** Bottom sheet on mobile, centered dialog on larger screens. Closes on Escape or backdrop tap. */
@@ -77,52 +58,33 @@ export function Sheet({ title, onClose, children }: { title?: ReactNode; onClose
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/45" onClick={onClose} />
-            <div className="relative w-full sm:max-w-md max-h-[92dvh] overflow-y-auto bg-canvas rounded-t-3xl sm:rounded-3xl shadow-2xl pb-[env(safe-area-inset-bottom)]">
+            <div className="absolute inset-0 bg-black/25" onClick={onClose} />
+            <div className="relative w-full sm:max-w-md max-h-[92dvh] overflow-y-auto bg-canvas rounded-t-[28px] sm:rounded-[28px] shadow-[0_-8px_40px_rgba(0,0,0,0.08)] pb-[env(safe-area-inset-bottom)]">
                 <div className="sm:hidden flex justify-center pt-2.5">
-                    <div className="w-10 h-1 rounded-full bg-ink/20" />
+                    <div className="w-9 h-1 rounded-full bg-ink/10" />
                 </div>
                 <div className="flex items-start justify-between gap-3 px-5 pt-4 sm:pt-6">
                     <div className="min-w-0 flex-1">{title}</div>
                     <button
                         onClick={onClose}
                         aria-label="閉じる"
-                        className="w-9 h-9 shrink-0 rounded-full bg-surface border border-line flex items-center justify-center text-ink-2 hover:text-ink"
+                        className="w-8 h-8 shrink-0 rounded-full bg-surface-2 flex items-center justify-center text-ink-2 hover:text-ink"
                     >
-                        <X size={18} strokeWidth={2.5} />
+                        <X size={16} strokeWidth={2} />
                     </button>
                 </div>
-                <div className="px-5 pt-5 pb-6">{children}</div>
+                <div className="px-5 pt-5 pb-7">{children}</div>
             </div>
         </div>
     );
 }
 
-export function CategoryPicker({ value, onChange }: { value: EventCategory; onChange: (c: EventCategory) => void }) {
+export function SheetTitle({ title, subtitle }: { title: string; subtitle?: string }) {
     return (
-        <div className="flex flex-wrap gap-2">
-            {CATEGORY_ENTRIES.map(([key, cfg]) => (
-                <Chip key={key} active={value === key} onClick={() => onChange(key)}>
-                    <span>{cfg.emoji}</span>
-                    {cfg.label}
-                </Chip>
-            ))}
+        <div>
+            <h2 className="text-[20px] font-bold text-ink leading-tight">{title}</h2>
+            {subtitle && <p className="text-[13px] text-ink-3 mt-1">{subtitle}</p>}
         </div>
-    );
-}
-
-export function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            aria-pressed={active}
-            className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-bold border ${
-                active ? 'bg-ink text-canvas border-ink' : 'bg-surface border-line text-ink-2 hover:text-ink'
-            }`}
-        >
-            {children}
-        </button>
     );
 }
 
@@ -133,20 +95,20 @@ export function Segmented<T extends string>({
     size = 'md',
 }: {
     value: T;
-    options: [T, string][];
+    options: [T, ReactNode][];
     onChange: (v: T) => void;
     size?: 'sm' | 'md';
 }) {
     return (
-        <div className="flex p-1 bg-ink/[0.06] rounded-xl">
+        <div className="flex p-[3px] bg-surface-2 rounded-[14px]">
             {options.map(([key, label]) => (
                 <button
                     key={key}
                     type="button"
                     onClick={() => onChange(key)}
                     aria-pressed={value === key}
-                    className={`flex-1 rounded-lg font-bold ${size === 'sm' ? 'px-3 py-1.5 text-xs' : 'py-2.5 text-[13px]'} ${
-                        value === key ? 'bg-surface text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
+                    className={`flex-1 rounded-[11px] font-medium ${size === 'sm' ? 'px-3 py-1.5 text-[12px]' : 'py-2 text-[13px]'} ${
+                        value === key ? 'bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.08)]' : 'text-ink-3 hover:text-ink-2'
                     }`}
                 >
                     {label}
@@ -165,12 +127,32 @@ export function Switch({ checked, onChange, disabled, label }: { checked: boolea
             aria-label={label}
             disabled={disabled}
             onClick={onChange}
-            className={`relative w-[52px] h-8 shrink-0 rounded-full disabled:opacity-40 ${checked ? 'bg-fresh' : 'bg-ink/15'}`}
+            className={`relative w-[50px] h-[30px] shrink-0 rounded-full disabled:opacity-40 ${checked ? 'bg-accent' : 'bg-ink/12'}`}
         >
-            <span
-                className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow ${checked ? 'left-[24px]' : 'left-1'}`}
-            />
+            <span className={`absolute top-[3px] w-6 h-6 rounded-full bg-white shadow-sm ${checked ? 'left-[23px]' : 'left-[3px]'}`} />
         </button>
+    );
+}
+
+export function IconPicker({ value, onChange }: { value: string; onChange: (icon: string) => void }) {
+    return (
+        <div className="grid grid-cols-7 gap-1.5">
+            {ICON_KEYS.map((key) => (
+                <button
+                    key={key}
+                    type="button"
+                    onClick={() => onChange(key)}
+                    aria-pressed={value === key}
+                    aria-label={ICONS[key].label}
+                    title={ICONS[key].label}
+                    className={`aspect-square rounded-[14px] flex items-center justify-center border ${
+                        value === key ? 'bg-ink text-canvas border-ink' : 'bg-surface border-line text-ink-2 hover:text-ink'
+                    }`}
+                >
+                    <Glyph name={key} size={20} />
+                </button>
+            ))}
+        </div>
     );
 }
 
@@ -189,20 +171,20 @@ export function Toast({ toast, onDismiss }: { toast: ToastState | null; onDismis
 
     if (!toast) return null;
     return (
-        <div className="fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 pointer-events-none">
+        <div className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 pointer-events-none">
             <div
                 key={toast.id}
                 role="status"
-                className="pointer-events-auto flex items-center gap-4 bg-ink text-canvas rounded-xl pl-4 pr-2 py-2 shadow-2xl max-w-md"
+                className="pointer-events-auto flex items-center gap-4 bg-ink/90 backdrop-blur text-canvas rounded-2xl pl-4 pr-2 py-2 shadow-lg max-w-md"
             >
-                <span className="text-sm font-bold py-1.5">{toast.message}</span>
+                <span className="text-[13px] py-1.5">{toast.message}</span>
                 {toast.onUndo && (
                     <button
                         onClick={() => {
                             toast.onUndo?.();
                             onDismiss();
                         }}
-                        className="text-sm font-bold px-3 py-1.5 rounded-lg bg-canvas/15 hover:bg-canvas/25"
+                        className="text-[13px] font-medium px-3 py-1.5 rounded-xl bg-canvas/15 hover:bg-canvas/25"
                     >
                         元に戻す
                     </button>

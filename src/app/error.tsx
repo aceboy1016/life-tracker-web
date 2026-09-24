@@ -16,7 +16,7 @@ export default function Error({
     return (
         <div className="min-h-dvh bg-canvas flex items-center justify-center p-4">
             <div className="bg-surface border border-line rounded-3xl p-6 max-w-lg w-full">
-                <h2 className="text-over font-bold text-lg mb-3">エラーが発生しました</h2>
+                <h2 className="text-alert font-bold text-lg mb-3">エラーが発生しました</h2>
                 <pre className="text-ink-2 text-xs bg-surface-2 rounded-xl p-4 overflow-auto mb-4 whitespace-pre-wrap">
                     {error.message}
                     {'\n\n'}

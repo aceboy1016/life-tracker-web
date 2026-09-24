@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
-import { Eyebrow, Segmented, cardClass, inputClass, primaryButtonClass } from '@/components/ui';
+import { Segmented, cardClass, inputClass, primaryButtonClass } from '@/components/ui';
+import { IconTile } from '@/lib/icons';
 
 type Mode = 'signin' | 'signup' | 'reset';
 
 const PREVIEW = [
-    { en: 'HEALTH', emoji: '💪', name: 'ジム', date: '9/22 07:30', value: '2', unit: '日前', bar: 'border-l-ok', tone: 'text-ok' },
-    { en: 'OTHER', emoji: '💇', name: '散髪', date: '8/17 14:00', value: '38', unit: '日前', bar: 'border-l-over', tone: 'text-over' },
+    { icon: 'ring', name: 'プロポーズした日', value: '732', unit: '日', sub: '2年' },
+    { icon: 'scissors', name: '髪を切る', value: '38', unit: '日前', sub: '前回 8月17日' },
+    { icon: 'gift', name: '結婚祝い · 田中さん', value: '¥30,000', unit: '', sub: 'お返し前' },
 ];
-
 function errorMessage(e: unknown): string {
     const err = e as { code?: string; message?: string };
     switch (err.code) {
@@ -74,38 +75,44 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="min-h-dvh bg-canvas flex items-center justify-center px-4 py-10">
-            <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-                {/* Intro */}
+        <div className="min-h-dvh bg-canvas flex items-center justify-center px-5 py-12">
+            <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                 <div>
-                    <h1 className="text-[34px] sm:text-[40px] leading-tight font-black tracking-tight text-ink">⏱️ LifeTracker</h1>
-                    <p className="mt-2 text-[15px] font-medium text-ink-2">最後にやった日を記録し、経過日数を一覧で確認できるアプリ</p>
-                    <div className="mt-8 space-y-2.5 hidden lg:block" aria-hidden="true">
+                    <p className="text-[13px] font-medium text-ink-3 tracking-wide">LifeTracker</p>
+                    <h1 className="mt-3 text-[30px] sm:text-[34px] leading-[1.35] font-bold text-ink">
+                        あの日から何日。
+                        <br />
+                        前回はいつ。
+                        <br />
+                        誰に何をもらったか。
+                    </h1>
+                    <p className="mt-4 text-[14px] text-ink-2 leading-relaxed">
+                        記念日、くり返すこと、いただきものを
+                        <br className="hidden sm:block" />
+                        ひとつの場所に。
+                    </p>
+                    <div className={`${cardClass} mt-8 divide-y divide-line hidden lg:block`} aria-hidden="true">
                         {PREVIEW.map((p) => (
-                            <div key={p.name} className={`${cardClass} ${p.bar} flex items-center gap-3 px-4 py-3.5`}>
-                                <div className="flex-1">
-                                    <Eyebrow>{p.en}</Eyebrow>
-                                    <p className="mt-1 text-[17px] font-bold text-ink">
-                                        <span className="mr-1.5">{p.emoji}</span>
-                                        {p.name}
-                                    </p>
-                                    <p className="mt-1 text-[13px] text-ink-2">{p.date}</p>
+                            <div key={p.name} className="flex items-center gap-3.5 px-4 py-3.5">
+                                <IconTile name={p.icon} size={40} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[15px] font-medium text-ink truncate">{p.name}</p>
+                                    <p className="text-[12px] text-ink-3 mt-0.5">{p.sub}</p>
                                 </div>
-                                <p className={`font-black tabular-nums tracking-tight ${p.tone}`}>
-                                    <span className="text-[26px]">{p.value}</span>
-                                    <span className="text-xs ml-0.5">{p.unit}</span>
+                                <p className="text-ink tabular-nums">
+                                    <span className="text-[20px] font-semibold tracking-tight">{p.value}</span>
+                                    {p.unit && <span className="text-[12px] text-ink-2 ml-0.5">{p.unit}</span>}
                                 </p>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Form */}
-                <div className={`${cardClass} border-l-ink p-6 sm:p-7`}>
+                <div className={`${cardClass} p-6 sm:p-7`}>
                     {mode === 'reset' ? (
                         <div className="mb-6">
-                            <h2 className="text-xl font-black text-ink">🔑 パスワードの再設定</h2>
-                            <p className="text-sm font-medium text-ink-2 mt-1">登録したメールアドレスに再設定用のリンクを送ります。</p>
+                            <h2 className="text-[18px] font-bold text-ink">パスワードの再設定</h2>
+                            <p className="text-[13px] text-ink-2 mt-1">登録したメールアドレスに再設定用のリンクを送ります。</p>
                         </div>
                     ) : (
                         <div className="mb-6">
@@ -122,7 +129,7 @@ export default function AuthPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-[13px] font-bold text-ink mb-1.5">
+                            <label htmlFor="email" className="block text-[12px] font-medium text-ink-2 mb-2 px-1">
                                 メールアドレス
                             </label>
                             <input
@@ -132,23 +139,19 @@ export default function AuthPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className={inputClass}
+                                className={`${inputClass} bg-canvas`}
                                 placeholder="you@example.com"
                             />
                         </div>
 
                         {mode !== 'reset' && (
                             <div>
-                                <div className="flex items-baseline justify-between mb-1.5">
-                                    <label htmlFor="password" className="block text-[13px] font-bold text-ink">
+                                <div className="flex items-baseline justify-between mb-2 px-1">
+                                    <label htmlFor="password" className="block text-[12px] font-medium text-ink-2">
                                         パスワード
                                     </label>
                                     {mode === 'signin' && (
-                                        <button
-                                            type="button"
-                                            onClick={() => switchMode('reset')}
-                                            className="text-xs font-bold text-ink-3 hover:text-ink"
-                                        >
+                                        <button type="button" onClick={() => switchMode('reset')} className="text-[12px] text-ink-3 hover:text-ink">
                                             お忘れですか？
                                         </button>
                                     )}
@@ -162,28 +165,28 @@ export default function AuthPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                         minLength={mode === 'signup' ? 6 : undefined}
-                                        className={`${inputClass} pr-12`}
+                                        className={`${inputClass} bg-canvas pr-12`}
                                         placeholder={mode === 'signup' ? '6文字以上' : ''}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPass(!showPass)}
                                         aria-label={showPass ? 'パスワードを隠す' : 'パスワードを表示'}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink"
+                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink"
                                     >
-                                        {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        {showPass ? <EyeOff size={17} strokeWidth={1.6} /> : <Eye size={17} strokeWidth={1.6} />}
                                     </button>
                                 </div>
                             </div>
                         )}
 
                         {error && (
-                            <p className="text-over text-sm bg-over/10 rounded-xl px-3.5 py-2.5" role="alert">
+                            <p className="text-alert text-[13px] bg-alert-soft rounded-xl px-3.5 py-2.5" role="alert">
                                 {error}
                             </p>
                         )}
                         {message && (
-                            <p className="text-fresh text-sm bg-fresh/10 rounded-xl px-3.5 py-2.5" role="status">
+                            <p className="text-accent text-[13px] bg-accent-soft rounded-xl px-3.5 py-2.5" role="status">
                                 {message}
                             </p>
                         )}
@@ -200,11 +203,8 @@ export default function AuthPage() {
                     </form>
 
                     {mode === 'reset' && (
-                        <button
-                            onClick={() => switchMode('signin')}
-                            className="mt-5 w-full text-center text-sm font-bold text-ink-2 hover:text-ink"
-                        >
-                            ← ログインに戻る
+                        <button onClick={() => switchMode('signin')} className="mt-5 w-full text-center text-[13px] text-ink-2 hover:text-ink">
+                            ログインに戻る
                         </button>
                     )}
                 </div>

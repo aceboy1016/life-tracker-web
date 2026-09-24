@@ -25,6 +25,7 @@ export async function loadUserEvents(uid: string): Promise<DigestEvent[]> {
         const data = d.data();
         return {
             name: String(data.name ?? ''),
+            kind: data.kind === 'milestone' ? 'milestone' : 'routine',
             lastExecutedDate: data.lastExecutedDate instanceof Timestamp ? data.lastExecutedDate.toDate() : null,
         };
     });
@@ -54,7 +55,7 @@ export async function sendToUser(uid: string, message: { title: string; body: st
 
 /** Daily digest for one user; skipped when nothing is overdue. */
 export async function sendDigestToUser(uid: string, now = Date.now()): Promise<number> {
-    const digest = buildDigest(await loadUserEvents(uid), now);
+    const digest = buildDigest(await loadUserEvents(uid), now, 'Asia/Tokyo');
     if (!digest) return 0;
     return sendToUser(uid, { ...digest, tag: 'daily-digest' });
 }

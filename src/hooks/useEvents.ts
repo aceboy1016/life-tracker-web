@@ -14,8 +14,18 @@ import {
     Timestamp,
 } from 'firebase/firestore';
 import { getFirebaseDB } from '@/lib/firebase';
-import { LifeEvent, EventCategory } from '@/types';
+import { LifeEvent, EventCategory, EventKind } from '@/types';
+import { iconForCategory } from '@/lib/icons';
 import { useAuth } from '@/contexts/AuthContext';
+
+export interface EventInput {
+    name: string;
+    kind: EventKind;
+    icon: string;
+    category?: EventCategory;
+    notes: string;
+    lastExecutedDate?: Date | null;
+}
 
 export function useEvents() {
     const { user } = useAuth();
@@ -38,13 +48,16 @@ export function useEvents() {
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedEvents: LifeEvent[] = snapshot.docs.map((doc) => {
                 const data = doc.data();
+                const category = (data.category as EventCategory) ?? 'general';
                 return {
                     id: doc.id,
                     name: data.name ?? '',
+                    kind: (data.kind as EventKind) === 'milestone' ? 'milestone' : 'routine',
+                    icon: typeof data.icon === 'string' ? data.icon : iconForCategory(category),
                     lastExecutedDate: data.lastExecutedDate instanceof Timestamp
                         ? data.lastExecutedDate.toDate()
                         : null,
-                    category: (data.category as EventCategory) ?? 'general',
+                    category,
                     notes: data.notes ?? '',
                     userId: data.userId ?? user.uid,
                     createdAt: data.createdAt instanceof Timestamp
@@ -63,12 +76,14 @@ export function useEvents() {
     }, [user]);
 
     const createEvent = useCallback(
-        async (data: { name: string; category: EventCategory; notes: string; lastExecutedDate?: Date | null }) => {
+        async (data: EventInput) => {
             if (!user) return;
             const db = getFirebaseDB();
             await addDoc(collection(db, 'users', user.uid, 'events'), {
                 name: data.name,
-                category: data.category,
+                kind: data.kind,
+                icon: data.icon,
+                category: data.category ?? 'general',
                 notes: data.notes,
                 lastExecutedDate: data.lastExecutedDate ?? null,
                 userId: user.uid,
@@ -91,7 +106,7 @@ export function useEvents() {
     const updateEvent = useCallback(
         async (
             eventId: string,
-            data: { name?: string; category?: EventCategory; notes?: string; lastExecutedDate?: Date | null }
+            data: Partial<EventInput>
         ) => {
             if (!user) return;
             const db = getFirebaseDB();

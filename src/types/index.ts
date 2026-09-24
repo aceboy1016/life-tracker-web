@@ -7,31 +7,35 @@ export type EventCategory =
     | 'household'
     | 'electronics';
 
+/** milestone: a one-off date to count from (proposal, wedding). routine: something done repeatedly (haircut). */
+export type EventKind = 'milestone' | 'routine';
+
 export interface LifeEvent {
     id: string;
     name: string;
+    kind: EventKind;
+    /** For routines: the last time it was done. For milestones: the date it happened. */
     lastExecutedDate: Date | null;
     category: EventCategory;
+    icon: string;
     notes: string;
     userId: string;
     createdAt?: Date;
 }
 
-export const CATEGORY_CONFIG: Record<EventCategory, { label: string; en: string; emoji: string }> = {
-    general: { en: 'OTHER', label: 'その他', emoji: '📌' },
-    health: { en: 'HEALTH', label: '健康', emoji: '❤️' },
-    work: { en: 'WORK', label: '仕事', emoji: '💼' },
-    hobby: { en: 'HOBBY', label: '趣味', emoji: '🎯' },
-    social: { en: 'SOCIAL', label: 'ソーシャル', emoji: '👥' },
-    household: { en: 'HOUSEHOLD', label: '家事', emoji: '🏠' },
-    electronics: { en: 'DEVICES', label: '電子機器', emoji: '💻' },
-};
-
-export const CATEGORY_ENTRIES = Object.entries(CATEGORY_CONFIG) as [
-    EventCategory,
-    (typeof CATEGORY_CONFIG)[EventCategory],
-][];
-
-export function getCategory(category: EventCategory) {
-    return CATEGORY_CONFIG[category] ?? CATEGORY_CONFIG.general;
+export interface Gift {
+    id: string;
+    from: string;
+    occasion: string;
+    item: string;
+    amount: number | null;
+    date: Date;
+    returned: boolean;
+    returnNote: string;
+    notes: string;
+    createdAt?: Date;
 }
+
+export type GiftInput = Omit<Gift, 'id' | 'createdAt'>;
+
+export const GIFT_OCCASIONS = ['結婚', '出産', '誕生日', '引越し・新築', '就職・昇進', 'お見舞い', 'お中元・お歳暮', 'その他'];

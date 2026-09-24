@@ -20,9 +20,9 @@ export async function POST(request: Request) {
     }
 
     try {
-        const digest = buildDigest(await loadUserEvents(uid), Date.now());
+        const digest = buildDigest(await loadUserEvents(uid), Date.now(), 'Asia/Tokyo');
         const delivered = await sendToUser(uid, {
-            title: digest ? `テスト通知：${digest.title}` : 'テスト通知',
+            title: digest ? `テスト：${digest.title}` : 'テスト通知',
             body: digest?.body ?? '通知は正しく設定されています。毎朝8時ごろにお知らせします。',
             tag: 'test',
         });
