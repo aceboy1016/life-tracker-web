@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { LifeEvent, EventGroup, EVENT_GROUPS } from '@/types';
+import { LifeEvent, EventGroup, EVENT_GROUPS, tracksAnniversaries } from '@/types';
 import type { EventInput } from '@/hooks/useEvents';
 import { IconTile } from '@/lib/icons';
 import { daysBetween, formatYMD, fromDateInputValue, spanParts, toDateInputValue, toYMD, upcomingOccasions } from '@/lib/time';
@@ -109,7 +109,7 @@ export default function EventDetailModal({ event, now, onClose, onUpdateToToday,
     const origin = d ? toYMD(d) : null;
     const today = toYMD(now);
     const days = origin ? daysBetween(origin, today) : null;
-    const occasions = event.group === 'milestone' && d ? upcomingOccasions(d, now) : [];
+    const occasions = tracksAnniversaries(event.group) && d ? upcomingOccasions(d, now) : [];
 
     return (
         <Sheet title={header} onClose={onClose}>
@@ -162,7 +162,7 @@ export default function EventDetailModal({ event, now, onClose, onUpdateToToday,
             </div>
 
             <div className="mt-6 space-y-2">
-                {event.group !== 'milestone' && (
+                {!tracksAnniversaries(event.group) && (
                     <button
                         onClick={() => {
                             onUpdateToToday(event);

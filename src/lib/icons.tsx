@@ -214,6 +214,62 @@ export const ICONS: Record<string, IconDef> = {
             </>
         ),
     },
+    handshake: {
+        label: '契約・取引',
+        tint: 'sand',
+        paths: (
+            <>
+                <path d="M3 11.5 6.5 8l3 1 2.5-1.5 2.5 1.5 3-1 3.5 3.5" />
+                <path d="M3 11.5 9.5 18a1.4 1.4 0 0 0 2-2" />
+                <path d="M11.5 16 13 17.5a1.4 1.4 0 0 0 2-2l-1-1" />
+                <path d="M14 14.5l1.5 1.5a1.4 1.4 0 0 0 2-2L21 11.5" />
+                <path d="M12 8.5 9 11.5a1.4 1.4 0 0 0 2 2l2.5-2" />
+            </>
+        ),
+    },
+    rocket: {
+        label: '開始・ローンチ',
+        tint: 'lilac',
+        paths: (
+            <>
+                <path d="M12 15.5 8.5 12c1.5-4.5 4.5-7.5 10-8.5-1 5.5-4 8.5-8.5 10Z" />
+                <path d="M8.5 12 5 11.5 7.5 9h3M12 15.5l.5 3.5L15 16.5v-3" />
+                <path d="M6.5 16.5c-1.2.6-1.8 2-2 3.5 1.5-.2 2.9-.8 3.5-2" />
+                <circle cx="14.5" cy="9.5" r="1.3" />
+            </>
+        ),
+    },
+    document: {
+        label: '書類',
+        tint: 'stone',
+        paths: (
+            <>
+                <path d="M7 3.5h7l4 4v13H7z" />
+                <path d="M14 3.5v4h4M9.5 12h6M9.5 15h6M9.5 18h3.5" />
+            </>
+        ),
+    },
+    chart: {
+        label: '売上・成長',
+        tint: 'sage',
+        paths: (
+            <>
+                <path d="M4 4.5v15h16" />
+                <path d="M7.5 15l3.5-4 3 2.5 5-6" />
+                <path d="M16 7.5h3v3" />
+            </>
+        ),
+    },
+    building: {
+        label: '会社',
+        tint: 'mist',
+        paths: (
+            <>
+                <path d="M5 20.5V5.5l8-2v17M13 9.5l6 2v9M3.5 20.5h17" />
+                <path d="M8 8.5h2M8 11.5h2M8 14.5h2M16 14.5h.01M16 17.5h.01" />
+            </>
+        ),
+    },
     laptop: {
         label: 'デバイス',
         tint: 'mist',

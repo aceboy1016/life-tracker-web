@@ -2,7 +2,7 @@ import { nextBirthday, upcomingOccasions } from '@/lib/time';
 
 export interface DigestEvent {
     name: string;
-    /** Only milestones (人生の節目) get anniversary / round-day notifications. */
+    /** Only 人生の節目 and 仕事・ビジネス get anniversary / round-day notifications. */
     isMilestone: boolean;
     lastExecutedDate: Date | null;
 }

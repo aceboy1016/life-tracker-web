@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { LifeEvent } from '@/types';
+import { LifeEvent, tracksAnniversaries } from '@/types';
 import { IconTile } from '@/lib/icons';
 import { daysBetween, spanParts, toYMD, upcomingOccasions } from '@/lib/time';
 import { Pill, SpanText } from '@/components/ui';
@@ -13,7 +13,7 @@ export function EventRow({ event, now, onOpen }: { event: LifeEvent; now: number
     const origin = date ? toYMD(date) : null;
     const days = origin ? daysBetween(origin, today) : null;
     const parts = origin && days !== null && days > 0 ? spanParts(origin, today) : [];
-    const next = event.group === 'milestone' && date ? upcomingOccasions(date, now)[0] : undefined;
+    const next = tracksAnniversaries(event.group) && date ? upcomingOccasions(date, now)[0] : undefined;
 
     return (
         <button
@@ -45,7 +45,7 @@ export function EventRow({ event, now, onOpen }: { event: LifeEvent; now: number
                 {date && (
                     <p className="mt-1 text-[12px] text-ink-3 tabular-nums">
                         {format(date, 'yyyy.M.d')}
-                        {event.group === 'milestone' && days !== null && days >= 30 && ` · ${days.toLocaleString('ja-JP')}日`}
+                        {tracksAnniversaries(event.group) && days !== null && days >= 30 && ` · ${days.toLocaleString('ja-JP')}日`}
                     </p>
                 )}
             </div>
