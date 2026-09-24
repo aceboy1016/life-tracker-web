@@ -21,6 +21,16 @@ npm run dev
 誕生日（当日と事前リマインド）、今日が記念日・節目の項目、1週間以上やっていない項目を、毎朝 8:00（JST）ごろ Web Push で 1 通にまとめて送ります（該当がない日は送りません）。
 スマホではホーム画面に追加したアプリから「設定 → この端末で受け取る」で有効になります（iPhone は iOS 16.4 以降・ホーム画面に追加が必須）。
 
+### かんたん設定（Vercel CLI が入った Mac で）
+
+Firebase コンソールで VAPID 公開鍵とサービスアカウント JSON を用意してから（取得場所はスクリプト冒頭のコメント参照）:
+
+```bash
+./scripts/setup-notifications.sh ~/Downloads/lifetracker-dc521-firebase-adminsdk-xxxx.json
+```
+
+3つの環境変数を本番に登録して再デプロイします。
+
 ### 必要な環境変数（Vercel → Settings → Environment Variables）
 
 | 変数 | 取得場所 |

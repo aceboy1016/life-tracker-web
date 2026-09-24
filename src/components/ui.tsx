@@ -193,3 +193,28 @@ export function Toast({ toast, onDismiss }: { toast: ToastState | null; onDismis
         </div>
     );
 }
+
+/** Renders 1年2ヶ月3日 with emphasized numbers and small units. */
+export function SpanText({
+    parts,
+    numberClass = 'text-[20px] font-semibold tracking-tight',
+    unitClass = 'text-[11px] text-ink-2 ml-px mr-0.5',
+    suffix,
+}: {
+    parts: { value: number; unit: string }[];
+    numberClass?: string;
+    unitClass?: string;
+    suffix?: string;
+}) {
+    return (
+        <span className="text-ink tabular-nums whitespace-nowrap">
+            {parts.map((p) => (
+                <span key={p.unit}>
+                    <span className={numberClass}>{p.value}</span>
+                    <span className={unitClass}>{p.unit}</span>
+                </span>
+            ))}
+            {suffix && <span className={unitClass}>{suffix}</span>}
+        </span>
+    );
+}
