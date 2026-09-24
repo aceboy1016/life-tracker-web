@@ -22,6 +22,7 @@ export function useBirthdays() {
                         return {
                             id: d.id,
                             name: data.name ?? '',
+                            reading: data.reading ?? '',
                             month: Number(data.month) || 1,
                             day: Number(data.day) || 1,
                             year: typeof data.year === 'number' ? data.year : null,

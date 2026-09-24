@@ -51,6 +51,8 @@ export const GIFT_OCCASIONS = ['結婚', '出産', '誕生日', '引越し・新
 export interface Birthday {
     id: string;
     name: string;
+    /** Furigana, used for search. */
+    reading: string;
     month: number; // 1-12
     day: number;
     /** Birth year if known, for showing age. */
