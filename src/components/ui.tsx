@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { Glyph, ICON_KEYS, ICONS } from '@/lib/icons';
 
 export const inputClass =
-    'w-full bg-surface border border-line rounded-2xl px-4 py-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25';
+    'w-full bg-surface border border-line rounded-2xl px-4 py-3 text-base text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25';
 
 export const primaryButtonClass =
     'inline-flex items-center justify-center gap-2 h-12 px-5 bg-ink text-canvas text-[15px] font-medium rounded-2xl hover:opacity-90 disabled:opacity-30 disabled:pointer-events-none';
@@ -136,7 +136,7 @@ export function Switch({ checked, onChange, disabled, label }: { checked: boolea
 
 export function IconPicker({ value, onChange }: { value: string; onChange: (icon: string) => void }) {
     return (
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className="grid grid-cols-5 gap-2">
             {ICON_KEYS.map((key) => (
                 <button
                     key={key}

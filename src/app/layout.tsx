@@ -24,6 +24,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Prevents iOS from zooming into focused inputs and leaving the page zoomed.
+  maximumScale: 1,
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f7f6f3' },

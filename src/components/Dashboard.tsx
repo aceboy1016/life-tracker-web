@@ -9,7 +9,7 @@ import { useGifts } from '@/hooks/useGifts';
 import { useBirthdays } from '@/hooks/useBirthdays';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNow } from '@/hooks/useNow';
-import { MilestoneRow, RoutineRow } from '@/components/EventCard';
+import { EventRow } from '@/components/EventCard';
 import AddEventModal from '@/components/AddEventModal';
 import EventDetailModal from '@/components/EventDetailModal';
 import GiftsTab from '@/components/GiftsTab';
@@ -17,10 +17,10 @@ import GiftSheet from '@/components/GiftSheet';
 import BirthdaysTab from '@/components/BirthdaysTab';
 import BirthdaySheet from '@/components/BirthdaySheet';
 import SettingsTab from '@/components/SettingsTab';
-import { GroupHeader, Segmented, Toast, ToastState, cardClass } from '@/components/ui';
+import { GroupHeader, Toast, ToastState, cardClass } from '@/components/ui';
 import { Avatar, Glyph, IconTile } from '@/lib/icons';
-import { LifeEvent, EventKind, Gift, Birthday } from '@/types';
-import { getUrgency, nextBirthday, upcomingOccasions } from '@/lib/time';
+import { LifeEvent, EventGroup, EVENT_GROUPS, Gift, Birthday } from '@/types';
+import { nextBirthday, upcomingOccasions } from '@/lib/time';
 
 type Tab = 'home' | 'birthdays' | 'gifts' | 'settings';
 
@@ -36,31 +36,14 @@ interface TodayItem {
     open: () => void;
 }
 
-const SUGGESTIONS: Record<EventKind, { name: string; icon: string }[]> = {
-    milestone: [
-        { name: '付き合った日', icon: 'heart' },
-        { name: 'プロポーズした日', icon: 'ring' },
-        { name: '結婚式', icon: 'ring' },
-        { name: '今の家に引っ越した日', icon: 'home' },
-        { name: '入社した日', icon: 'briefcase' },
-        { name: '子どもが生まれた日', icon: 'baby' },
-    ],
-    routine: [
-        { name: '髪を切る', icon: 'scissors' },
-        { name: '歯医者', icon: 'tooth' },
-        { name: 'ジム', icon: 'dumbbell' },
-        { name: '実家に電話', icon: 'phone' },
-        { name: '洗車', icon: 'car' },
-        { name: '植物に水をやる', icon: 'leaf' },
-    ],
-};
-
-/** Oldest (or never done) first. */
-function compareByElapsed(a: LifeEvent, b: LifeEvent): number {
-    const at = a.lastExecutedDate?.getTime() ?? -Infinity;
-    const bt = b.lastExecutedDate?.getTime() ?? -Infinity;
-    return at === bt ? a.name.localeCompare(b.name, 'ja') : at - bt;
-}
+const SUGGESTIONS: { name: string; group: EventGroup; icon: string }[] = [
+    { name: '付き合った日', group: 'milestone', icon: 'heart' },
+    { name: 'プロポーズ', group: 'milestone', icon: 'ring' },
+    { name: '入社日', group: 'milestone', icon: 'briefcase' },
+    { name: 'iPhone 購入', group: 'purchase', icon: 'smartphone' },
+    { name: 'ジム入会', group: 'contract', icon: 'dumbbell' },
+    { name: '髪を切った', group: 'routine', icon: 'scissors' },
+];
 
 export default function Dashboard() {
     const { user, logOut } = useAuth();
@@ -70,9 +53,8 @@ export default function Dashboard() {
     const now = useNow();
 
     const [tab, setTab] = useState<Tab>('home');
-    const [kind, setKind] = useState<EventKind>('milestone');
     const [search, setSearch] = useState('');
-    const [addEvent, setAddEvent] = useState<{ name: string; kind: EventKind; icon: string } | null>(null);
+    const [addEvent, setAddEvent] = useState<{ name: string; group: EventGroup; icon: string } | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [giftSheet, setGiftSheet] = useState<{ gift?: Gift; from?: string } | null>(null);
     const [birthdaySheet, setBirthdaySheet] = useState<{ birthday?: Birthday } | null>(null);
@@ -85,11 +67,11 @@ export default function Dashboard() {
     }, []);
     const dismissToast = useCallback(() => setToast(null), []);
 
-    const handleMark = useCallback(
-        (event: LifeEvent, date?: Date) => {
+    const handleUpdateToToday = useCallback(
+        (event: LifeEvent) => {
             const previous = event.lastExecutedDate;
-            markAsExecuted(event.id, date).catch(() => showToast('記録できませんでした'));
-            showToast(`「${event.name}」を記録しました`, () => {
+            markAsExecuted(event.id).catch(() => showToast('更新できませんでした'));
+            showToast(`「${event.name}」を今日の日付にしました`, () => {
                 updateEvent(event.id, { lastExecutedDate: previous });
             });
         },
@@ -105,14 +87,7 @@ export default function Dashboard() {
         [deleteEvent, showToast]
     );
 
-    const milestones = useMemo(
-        () =>
-            events
-                .filter((e) => e.kind === 'milestone')
-                .sort((a, b) => (b.lastExecutedDate?.getTime() ?? 0) - (a.lastExecutedDate?.getTime() ?? 0)),
-        [events]
-    );
-    const routines = useMemo(() => events.filter((e) => e.kind === 'routine').sort(compareByElapsed), [events]);
+    const milestones = useMemo(() => events.filter((e) => e.group === 'milestone'), [events]);
 
     // Today's anniversaries, round-number days and birthdays, and what's coming up soon.
     const { todays, upcoming } = useMemo(() => {
@@ -152,17 +127,15 @@ export default function Dashboard() {
         };
     }, [milestones, birthdays, now]);
 
-    const overdue = routines.filter((e) => getUrgency(e.lastExecutedDate, now) === 'over').length;
-
     const q = search.trim().toLowerCase();
     const matches = (e: LifeEvent) => !q || e.name.toLowerCase().includes(q) || e.notes.toLowerCase().includes(q);
-    const visibleMilestones = milestones.filter(matches);
-    const visibleRoutines = routines.filter(matches);
-    const staleRoutines = visibleRoutines.filter((e) => {
-        const u = getUrgency(e.lastExecutedDate, now);
-        return u === 'over' || u === 'never';
-    });
-    const recentRoutines = visibleRoutines.filter((e) => !staleRoutines.includes(e));
+    // Each group newest first, so the latest purchase / haircut is on top.
+    const groups = EVENT_GROUPS.map((g) => ({
+        ...g,
+        items: events
+            .filter((e) => e.group === g.key && matches(e))
+            .sort((a, b) => (b.lastExecutedDate?.getTime() ?? 0) - (a.lastExecutedDate?.getTime() ?? 0)),
+    })).filter((g) => g.items.length > 0);
 
     const knownNames = useMemo(() => [...new Set(gifts.map((g) => g.from))], [gifts]);
     const openRow = (e: LifeEvent) => setSelectedId(e.id);
@@ -181,7 +154,7 @@ export default function Dashboard() {
                                     ? setGiftSheet({})
                                     : tab === 'birthdays'
                                       ? setBirthdaySheet({})
-                                      : setAddEvent({ name: '', kind, icon: kind === 'milestone' ? 'heart' : 'star' })
+                                      : setAddEvent({ name: '', group: 'milestone', icon: 'heart' })
                             }
                             aria-label="追加"
                             className="w-9 h-9 rounded-full bg-ink text-canvas flex items-center justify-center hover:opacity-90"
@@ -216,7 +189,7 @@ export default function Dashboard() {
                                     </div>
                                 ) : (
                                     <div className="px-4 py-4">
-                                        <p className="text-[14px] text-ink-2">今日は記念日ではありません</p>
+                                        <p className="text-[14px] text-ink-2">今日は記念日・誕生日ではありません</p>
                                     </div>
                                 )}
                                 {upcoming.length > 0 && (
@@ -231,91 +204,50 @@ export default function Dashboard() {
                                         ))}
                                     </div>
                                 )}
-                                {overdue > 0 && (
-                                    <button
-                                        onClick={() => setKind('routine')}
-                                        className="w-full border-t border-line px-4 py-3 flex items-center justify-between text-left"
-                                    >
-                                        <span className="text-[14px] text-ink">しばらくやっていないこと</span>
-                                        <span className="text-[13px] text-alert tabular-nums">{overdue}件</span>
-                                    </button>
-                                )}
                             </div>
                         </section>
 
-                        <div className="space-y-2.5 mb-6">
-                            <Segmented
-                                value={kind}
-                                onChange={setKind}
-                                options={[
-                                    ['milestone', `記念日・できごと ${milestones.length}`],
-                                    ['routine', `くり返すこと ${routines.length}`],
-                                ]}
-                            />
-                            {events.length > 5 && (
-                                <div className="relative">
-                                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3" />
-                                    <input
-                                        type="search"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        placeholder="検索"
-                                        className="w-full bg-surface border border-line rounded-2xl pl-10 pr-10 py-2.5 text-[14px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25 [&::-webkit-search-cancel-button]:hidden"
-                                    />
-                                    {search && (
-                                        <button
-                                            onClick={() => setSearch('')}
-                                            aria-label="検索をクリア"
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-2 text-ink-2 flex items-center justify-center"
-                                        >
-                                            <X size={13} />
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        {events.length > 8 && (
+                            <div className="relative mb-6">
+                                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3" />
+                                <input
+                                    type="search"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="検索"
+                                    className="w-full bg-surface border border-line rounded-2xl pl-10 pr-10 py-2.5 text-base text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25 [&::-webkit-search-cancel-button]:hidden"
+                                />
+                                {search && (
+                                    <button
+                                        onClick={() => setSearch('')}
+                                        aria-label="検索をクリア"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-2 text-ink-2 flex items-center justify-center"
+                                    >
+                                        <X size={13} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
                         {loading ? (
                             <div className={`${cardClass} h-48`} />
-                        ) : kind === 'milestone' ? (
-                            visibleMilestones.length > 0 ? (
-                                <RowGroup>
-                                    {visibleMilestones.map((e) => (
-                                        <MilestoneRow key={e.id} event={e} now={now} onOpen={openRow} />
-                                    ))}
-                                </RowGroup>
-                            ) : (
-                                <Suggestions
-                                    kind="milestone"
-                                    empty={!q}
-                                    onPick={(s) => setAddEvent({ ...s, kind: 'milestone' })}
-                                />
-                            )
-                        ) : visibleRoutines.length > 0 ? (
-                            <div className="space-y-6">
-                                {staleRoutines.length > 0 && (
-                                    <section>
-                                        <GroupHeader title="しばらくやっていない" count={staleRoutines.length} />
-                                        <RowGroup>
-                                            {staleRoutines.map((e) => (
-                                                <RoutineRow key={e.id} event={e} now={now} onOpen={openRow} onMark={handleMark} />
-                                            ))}
-                                        </RowGroup>
-                                    </section>
-                                )}
-                                {recentRoutines.length > 0 && (
-                                    <section>
-                                        <GroupHeader title="最近" count={recentRoutines.length} />
-                                        <RowGroup>
-                                            {recentRoutines.map((e) => (
-                                                <RoutineRow key={e.id} event={e} now={now} onOpen={openRow} onMark={handleMark} />
-                                            ))}
-                                        </RowGroup>
-                                    </section>
-                                )}
-                            </div>
+                        ) : events.length === 0 ? (
+                            <Suggestions onPick={(s) => setAddEvent(s)} />
+                        ) : groups.length === 0 ? (
+                            <p className="text-center text-[14px] text-ink-3 py-12">一致するものはありません</p>
                         ) : (
-                            <Suggestions kind="routine" empty={!q} onPick={(s) => setAddEvent({ ...s, kind: 'routine' })} />
+                            <div className="space-y-7">
+                                {groups.map((g) => (
+                                    <section key={g.key}>
+                                        <GroupHeader title={g.label} count={g.items.length} />
+                                        <RowGroup>
+                                            {g.items.map((e) => (
+                                                <EventRow key={e.id} event={e} now={now} onOpen={openRow} />
+                                            ))}
+                                        </RowGroup>
+                                    </section>
+                                ))}
+                            </div>
                         )}
                     </>
                 )}
@@ -379,7 +311,7 @@ export default function Dashboard() {
                     event={selectedEvent}
                     now={now}
                     onClose={() => setSelectedId(null)}
-                    onMark={handleMark}
+                    onUpdateToToday={handleUpdateToToday}
                     onDelete={handleDelete}
                     onUpdate={updateEvent}
                 />
@@ -430,23 +362,12 @@ function RowGroup({ children }: { children: React.ReactNode }) {
     return <div className={`${cardClass} divide-y divide-line overflow-hidden`}>{children}</div>;
 }
 
-function Suggestions({
-    kind,
-    empty,
-    onPick,
-}: {
-    kind: EventKind;
-    empty: boolean;
-    onPick: (s: { name: string; icon: string }) => void;
-}) {
-    if (!empty) return <p className="text-center text-[14px] text-ink-3 py-12">一致するものはありません</p>;
+function Suggestions({ onPick }: { onPick: (s: { name: string; group: EventGroup; icon: string }) => void }) {
     return (
         <div>
-            <p className="text-[13px] text-ink-2 px-1 mb-3">
-                {kind === 'milestone' ? '覚えておきたい日を追加しましょう' : '定期的にやることを追加しましょう'}
-            </p>
+            <p className="text-[13px] text-ink-2 px-1 mb-3">「あれいつだっけ？」を追加しましょう</p>
             <RowGroup>
-                {SUGGESTIONS[kind].map((s) => (
+                {SUGGESTIONS.map((s) => (
                     <button
                         key={s.name}
                         onClick={() => onPick(s)}
@@ -454,7 +375,7 @@ function Suggestions({
                     >
                         <IconTile name={s.icon} size={36} />
                         <span className="flex-1 text-[15px] text-ink">{s.name}</span>
-                        <Plus size={16} className="text-ink-3" />
+                        <span className="text-[12px] text-ink-3">{EVENT_GROUPS.find((g) => g.key === s.group)?.label}</span>
                     </button>
                 ))}
             </RowGroup>

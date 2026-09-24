@@ -1,52 +1,5 @@
-export type Urgency = 'never' | 'fresh' | 'ok' | 'warn' | 'over';
-
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
-
-export function getUrgency(date: Date | null, now: number): Urgency {
-    if (!date) return 'never';
-    const hours = (now - date.getTime()) / HOUR;
-    if (hours < 24) return 'fresh';
-    if (hours < 72) return 'ok';
-    if (hours < 168) return 'warn';
-    return 'over';
-}
-
-/**
- * Time since `date` as number/unit parts: minutes or hours within the first day,
- * then calendar years / months / days (e.g. 1年2ヶ月3日).
- */
-export function elapsedParts(date: Date | null, now: number): { value: number; unit: string }[] | null {
-    if (!date) return null;
-    const diff = Math.max(0, now - date.getTime());
-    const minutes = Math.floor(diff / 60_000);
-    if (minutes < 1) return [];
-    if (minutes < 60) return [{ value: minutes, unit: '分' }];
-    const hours = Math.floor(diff / HOUR);
-    if (hours < 24) return [{ value: hours, unit: '時間' }];
-    const parts = spanParts(toYMD(date), toYMD(now));
-    return parts.length ? parts : [{ value: 1, unit: '日' }];
-}
-
-export function formatElapsedText(date: Date | null, now: number): string {
-    const parts = elapsedParts(date, now);
-    if (!parts) return 'まだ記録なし';
-    if (parts.length === 0) return 'たった今';
-    return parts.map((p) => `${p.value}${p.unit}`).join('') + '前';
-}
-
-export function isSameDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-}
-
-/** Value for <input type="datetime-local"> in local time. */
-export function toLocalInputValue(date: Date): string {
-    return `${toDateInputValue(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 /** Value for <input type="date"> in local time. */
 export function toDateInputValue(date: Date): string {

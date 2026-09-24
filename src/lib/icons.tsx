@@ -170,6 +170,50 @@ export const ICONS: Record<string, IconDef> = {
             </>
         ),
     },
+    smartphone: {
+        label: 'スマホ',
+        tint: 'mist',
+        paths: (
+            <>
+                <rect x="7" y="3.5" width="10" height="17" rx="2.5" />
+                <path d="M11 17.5h2" />
+            </>
+        ),
+    },
+    watch: {
+        label: '時計',
+        tint: 'stone',
+        paths: (
+            <>
+                <rect x="7" y="7" width="10" height="10" rx="2.5" />
+                <path d="M9 7l.6-3.5h4.8L15 7M9 17l.6 3.5h4.8L15 17" />
+                <path d="M12 10v2.2l1.3 1" />
+            </>
+        ),
+    },
+    bike: {
+        label: '自転車',
+        tint: 'sage',
+        paths: (
+            <>
+                <circle cx="6" cy="15.5" r="3.5" />
+                <circle cx="18" cy="15.5" r="3.5" />
+                <path d="M6 15.5 9.5 9h5l3.5 6.5M9.5 9 12 15.5h-6M14.5 9 13.5 6.5H16" />
+            </>
+        ),
+    },
+    wifi: {
+        label: '回線',
+        tint: 'mist',
+        paths: (
+            <>
+                <path d="M3.5 9.5a12 12 0 0 1 17 0" />
+                <path d="M6.5 12.8a7.7 7.7 0 0 1 11 0" />
+                <path d="M9.5 16a3.4 3.4 0 0 1 5 0" />
+                <path d="M12 19.3h.01" />
+            </>
+        ),
+    },
     laptop: {
         label: 'デバイス',
         tint: 'mist',

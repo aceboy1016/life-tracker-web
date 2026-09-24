@@ -7,14 +7,22 @@ export type EventCategory =
     | 'household'
     | 'electronics';
 
-/** milestone: a one-off date to count from (proposal, wedding). routine: something done repeatedly (haircut). */
-export type EventKind = 'milestone' | 'routine';
+/** How an item is grouped on the home screen. Anniversaries and round-number days are tracked for milestones only. */
+export type EventGroup = 'milestone' | 'purchase' | 'contract' | 'routine' | 'other';
+
+export const EVENT_GROUPS: { key: EventGroup; label: string; hint: string; icon: string }[] = [
+    { key: 'milestone', label: '人生の節目', hint: '付き合った日、プロポーズ、入社日など。記念日をお知らせします', icon: 'heart' },
+    { key: 'purchase', label: '買ったもの', hint: 'スマホ、パソコン、自転車など。買ってからの期間がわかります', icon: 'laptop' },
+    { key: 'contract', label: '契約・入会', hint: '回線、ジム、保険など。契約してからの期間がわかります', icon: 'wifi' },
+    { key: 'routine', label: '定期的なこと', hint: '髪を切る、歯医者など。やったら日付を更新します', icon: 'scissors' },
+    { key: 'other', label: 'その他', hint: '', icon: 'star' },
+];
 
 export interface LifeEvent {
     id: string;
     name: string;
-    kind: EventKind;
-    /** For routines: the last time it was done. For milestones: the date it happened. */
+    group: EventGroup;
+    /** The date to count from: when it happened, was bought, or was last done. */
     lastExecutedDate: Date | null;
     category: EventCategory;
     icon: string;
