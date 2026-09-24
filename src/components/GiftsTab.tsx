@@ -97,7 +97,7 @@ export default function GiftsTab({
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="名前・品物で検索"
-                        className="w-full bg-surface border border-line rounded-2xl pl-10 pr-10 py-2.5 text-[14px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25 [&::-webkit-search-cancel-button]:hidden"
+                        className="w-full bg-surface border border-line rounded-2xl pl-10 pr-10 py-2.5 text-base text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25 [&::-webkit-search-cancel-button]:hidden"
                     />
                     {search && (
                         <button

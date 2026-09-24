@@ -27,7 +27,7 @@ export async function loadUserData(uid: string): Promise<{ events: DigestEvent[]
             const data = d.data();
             return {
                 name: String(data.name ?? ''),
-                kind: data.kind === 'milestone' ? 'milestone' : 'routine',
+                isMilestone: data.group === 'milestone' || (data.group === undefined && data.kind === 'milestone'),
                 lastExecutedDate: data.lastExecutedDate instanceof Timestamp ? data.lastExecutedDate.toDate() : null,
             };
         }),
@@ -66,7 +66,7 @@ export async function sendToUser(uid: string, message: { title: string; body: st
     return res.successCount;
 }
 
-/** Daily digest for one user; skipped when nothing is overdue. */
+/** Daily digest for one user; skipped when there is nothing to tell. */
 export async function sendDigestToUser(uid: string, now = Date.now()): Promise<number> {
     const digest = buildDigest(await loadUserData(uid), now, 'Asia/Tokyo');
     if (!digest) return 0;

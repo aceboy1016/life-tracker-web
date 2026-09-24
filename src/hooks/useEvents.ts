@@ -14,13 +14,13 @@ import {
     Timestamp,
 } from 'firebase/firestore';
 import { getFirebaseDB } from '@/lib/firebase';
-import { LifeEvent, EventCategory, EventKind } from '@/types';
+import { LifeEvent, EventCategory, EventGroup, EVENT_GROUPS } from '@/types';
 import { iconForCategory } from '@/lib/icons';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface EventInput {
     name: string;
-    kind: EventKind;
+    group: EventGroup;
     icon: string;
     category?: EventCategory;
     notes: string;
@@ -52,7 +52,11 @@ export function useEvents() {
                 return {
                     id: doc.id,
                     name: data.name ?? '',
-                    kind: (data.kind as EventKind) === 'milestone' ? 'milestone' : 'routine',
+                    group: EVENT_GROUPS.some((g) => g.key === data.group)
+                        ? (data.group as EventGroup)
+                        : data.kind === 'milestone'
+                          ? 'milestone'
+                          : 'other',
                     icon: typeof data.icon === 'string' ? data.icon : iconForCategory(category),
                     lastExecutedDate: data.lastExecutedDate instanceof Timestamp
                         ? data.lastExecutedDate.toDate()
@@ -81,7 +85,7 @@ export function useEvents() {
             const db = getFirebaseDB();
             await addDoc(collection(db, 'users', user.uid, 'events'), {
                 name: data.name,
-                kind: data.kind,
+                group: data.group,
                 icon: data.icon,
                 category: data.category ?? 'general',
                 notes: data.notes,

@@ -1,8 +1,9 @@
-import { formatElapsedText, getUrgency, nextBirthday, upcomingOccasions } from '@/lib/time';
+import { nextBirthday, upcomingOccasions } from '@/lib/time';
 
 export interface DigestEvent {
     name: string;
-    kind: 'milestone' | 'routine';
+    /** Only milestones (人生の節目) get anniversary / round-day notifications. */
+    isMilestone: boolean;
     lastExecutedDate: Date | null;
 }
 
@@ -14,11 +15,9 @@ export interface DigestBirthday {
     remindDaysBefore: number;
 }
 
-const MAX_NAMES = 3;
-
 /**
- * Morning notification. Priority: what today is (birthdays, anniversaries), then birthday
- * reminders ahead of time, then routines not done for a week or more.
+ * Morning notification: what today is (birthdays, anniversaries, round-number days),
+ * then birthday reminders ahead of time. Nothing on a day with neither.
  * `timeZone` decides what "today" is on the server.
  */
 export function buildDigest(
@@ -39,37 +38,13 @@ export function buildDigest(
         }
     }
     for (const e of events) {
-        if (e.kind !== 'milestone' || !e.lastExecutedDate) continue;
+        if (!e.isMilestone || !e.lastExecutedDate) continue;
         for (const o of upcomingOccasions(e.lastExecutedDate, now, timeZone)) {
             if (o.inDays === 0) today.push(`${e.name}から${o.label}`);
         }
     }
 
-    const overdue = events
-        .filter((e) => {
-            if (e.kind !== 'routine') return false;
-            const u = getUrgency(e.lastExecutedDate, now);
-            return u === 'over' || u === 'never';
-        })
-        .sort((a, b) => (a.lastExecutedDate?.getTime() ?? -Infinity) - (b.lastExecutedDate?.getTime() ?? -Infinity));
-
-    const overdueText = () => {
-        const names = overdue
-            .slice(0, MAX_NAMES)
-            .map((e) => (e.lastExecutedDate ? `${e.name}（${formatElapsedText(e.lastExecutedDate, now)}）` : e.name));
-        const rest = overdue.length - MAX_NAMES;
-        return names.join('、') + (rest > 0 ? ` ほか${rest}件` : '');
-    };
-
-    const lines = [
-        ...today.map((t) => `今日は${t}`),
-        ...soon,
-        ...(overdue.length > 0 ? [`しばらくやっていないこと：${overdueText()}`] : []),
-    ];
+    const lines = [...today.map((t) => `今日は${t}`), ...soon];
     if (lines.length === 0) return null;
-
-    if (today.length === 0 && soon.length === 0) {
-        return { title: `しばらくやっていないことが${overdue.length}件`, body: overdueText() };
-    }
     return { title: lines[0], body: lines.slice(1).join('\n') || 'LifeTracker を開いて確認しましょう' };
 }
