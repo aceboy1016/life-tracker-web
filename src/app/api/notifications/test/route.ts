@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminAuth, loadUserEvents, sendToUser } from '@/lib/firebaseAdmin';
+import { adminAuth, loadUserData, sendToUser } from '@/lib/firebaseAdmin';
 import { buildDigest } from '@/lib/digest';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     try {
-        const digest = buildDigest(await loadUserEvents(uid), Date.now(), 'Asia/Tokyo');
+        const digest = buildDigest(await loadUserData(uid), Date.now(), 'Asia/Tokyo');
         const delivered = await sendToUser(uid, {
             title: digest ? `テスト：${digest.title}` : 'テスト通知',
             body: digest?.body ?? '通知は正しく設定されています。毎朝8時ごろにお知らせします。',

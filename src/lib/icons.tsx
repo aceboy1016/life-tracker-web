@@ -287,3 +287,21 @@ export function IconTile({ name, size = 44 }: { name: string; size?: number }) {
         </span>
     );
 }
+
+const AVATAR_TINTS: Tint[] = ['sand', 'sage', 'mist', 'blush', 'lilac', 'stone'];
+
+/** First character of a name on a pale tile; the tint is stable per name. */
+export function Avatar({ name, size = 42 }: { name: string; size?: number }) {
+    let hash = 0;
+    for (const ch of name) hash = (hash * 31 + ch.codePointAt(0)!) >>> 0;
+    const tint = AVATAR_TINTS[hash % AVATAR_TINTS.length];
+    return (
+        <span
+            className={`inline-flex shrink-0 items-center justify-center rounded-full font-medium ${TINT_CLASS[tint]}`}
+            style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
+            aria-hidden="true"
+        >
+            {[...name.trim()][0] ?? '?'}
+        </span>
+    );
+}

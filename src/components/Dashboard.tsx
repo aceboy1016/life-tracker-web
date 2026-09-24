@@ -6,6 +6,7 @@ import { ja } from 'date-fns/locale';
 import { Plus, Search, Settings2, X } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { useGifts } from '@/hooks/useGifts';
+import { useBirthdays } from '@/hooks/useBirthdays';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNow } from '@/hooks/useNow';
 import { MilestoneRow, RoutineRow } from '@/components/EventCard';
@@ -13,13 +14,27 @@ import AddEventModal from '@/components/AddEventModal';
 import EventDetailModal from '@/components/EventDetailModal';
 import GiftsTab from '@/components/GiftsTab';
 import GiftSheet from '@/components/GiftSheet';
+import BirthdaysTab from '@/components/BirthdaysTab';
+import BirthdaySheet from '@/components/BirthdaySheet';
 import SettingsTab from '@/components/SettingsTab';
 import { GroupHeader, Segmented, Toast, ToastState, cardClass } from '@/components/ui';
-import { Glyph, IconTile } from '@/lib/icons';
-import { LifeEvent, EventKind, Gift } from '@/types';
-import { getUrgency, Occasion, upcomingOccasions } from '@/lib/time';
+import { Avatar, Glyph, IconTile } from '@/lib/icons';
+import { LifeEvent, EventKind, Gift, Birthday } from '@/types';
+import { getUrgency, nextBirthday, upcomingOccasions } from '@/lib/time';
 
-type Tab = 'home' | 'gifts' | 'settings';
+type Tab = 'home' | 'birthdays' | 'gifts' | 'settings';
+
+/** A line in the home "today" card: an anniversary or a birthday. */
+interface TodayItem {
+    key: string;
+    inDays: number;
+    avatar: React.ReactNode;
+    smallIcon: React.ReactNode;
+    todayText: string;
+    value: string;
+    upcomingText: string;
+    open: () => void;
+}
 
 const SUGGESTIONS: Record<EventKind, { name: string; icon: string }[]> = {
     milestone: [
@@ -51,6 +66,7 @@ export default function Dashboard() {
     const { user, logOut } = useAuth();
     const { events, loading, createEvent, markAsExecuted, updateEvent, deleteEvent } = useEvents();
     const { gifts, loading: giftsLoading, createGift, updateGift, deleteGift } = useGifts();
+    const { birthdays, loading: birthdaysLoading, createBirthday, updateBirthday, deleteBirthday } = useBirthdays();
     const now = useNow();
 
     const [tab, setTab] = useState<Tab>('home');
@@ -59,6 +75,7 @@ export default function Dashboard() {
     const [addEvent, setAddEvent] = useState<{ name: string; kind: EventKind; icon: string } | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [giftSheet, setGiftSheet] = useState<{ gift?: Gift; from?: string } | null>(null);
+    const [birthdaySheet, setBirthdaySheet] = useState<{ birthday?: Birthday } | null>(null);
     const [toast, setToast] = useState<ToastState | null>(null);
 
     const selectedEvent = events.find((e) => e.id === selectedId) ?? null;
@@ -97,19 +114,43 @@ export default function Dashboard() {
     );
     const routines = useMemo(() => events.filter((e) => e.kind === 'routine').sort(compareByElapsed), [events]);
 
-    // Today's anniversaries / round-number days, and what's coming up soon.
+    // Today's anniversaries, round-number days and birthdays, and what's coming up soon.
     const { todays, upcoming } = useMemo(() => {
-        const all: { event: LifeEvent; occasion: Occasion }[] = [];
+        const all: TodayItem[] = [];
         for (const e of milestones) {
             if (!e.lastExecutedDate) continue;
-            for (const o of upcomingOccasions(e.lastExecutedDate, now)) all.push({ event: e, occasion: o });
+            for (const o of upcomingOccasions(e.lastExecutedDate, now)) {
+                all.push({
+                    key: e.id + o.kind,
+                    inDays: o.inDays,
+                    avatar: <IconTile name={e.icon} size={42} />,
+                    smallIcon: <Glyph name={e.icon} size={16} className="text-ink-3 shrink-0" />,
+                    todayText: `${e.name}から`,
+                    value: o.label,
+                    upcomingText: `${e.name} · ${o.label}`,
+                    open: () => setSelectedId(e.id),
+                });
+            }
         }
-        all.sort((a, b) => a.occasion.inDays - b.occasion.inDays);
+        for (const b of birthdays) {
+            const next = nextBirthday(b, now);
+            all.push({
+                key: 'b' + b.id,
+                inDays: next.inDays,
+                avatar: <Avatar name={b.name} size={42} />,
+                smallIcon: <Glyph name="cake" size={16} className="text-ink-3 shrink-0" />,
+                todayText: `${b.name}の誕生日`,
+                value: next.age !== null ? `${next.age}歳` : '',
+                upcomingText: `${b.name}の誕生日${next.age !== null ? ` · ${next.age}歳` : ''}`,
+                open: () => setBirthdaySheet({ birthday: b }),
+            });
+        }
+        all.sort((a, b) => a.inDays - b.inDays);
         return {
-            todays: all.filter((x) => x.occasion.inDays === 0),
-            upcoming: all.filter((x) => x.occasion.inDays > 0 && x.occasion.inDays <= 60).slice(0, 3),
+            todays: all.filter((x) => x.inDays === 0),
+            upcoming: all.filter((x) => x.inDays > 0 && x.inDays <= 60).slice(0, 4),
         };
-    }, [milestones, now]);
+    }, [milestones, birthdays, now]);
 
     const overdue = routines.filter((e) => getUrgency(e.lastExecutedDate, now) === 'over').length;
 
@@ -126,7 +167,7 @@ export default function Dashboard() {
     const knownNames = useMemo(() => [...new Set(gifts.map((g) => g.from))], [gifts]);
     const openRow = (e: LifeEvent) => setSelectedId(e.id);
 
-    const title = tab === 'home' ? 'ホーム' : tab === 'gifts' ? 'いただきもの' : '設定';
+    const title = { home: 'ホーム', birthdays: '誕生日', gifts: 'いただきもの', settings: '設定' }[tab];
 
     return (
         <div className="min-h-dvh bg-canvas">
@@ -136,7 +177,11 @@ export default function Dashboard() {
                     {tab !== 'settings' && (
                         <button
                             onClick={() =>
-                                tab === 'gifts' ? setGiftSheet({}) : setAddEvent({ name: '', kind, icon: kind === 'milestone' ? 'heart' : 'star' })
+                                tab === 'gifts'
+                                    ? setGiftSheet({})
+                                    : tab === 'birthdays'
+                                      ? setBirthdaySheet({})
+                                      : setAddEvent({ name: '', kind, icon: kind === 'milestone' ? 'heart' : 'star' })
                             }
                             aria-label="追加"
                             className="w-9 h-9 rounded-full bg-ink text-canvas flex items-center justify-center hover:opacity-90"
@@ -158,18 +203,14 @@ export default function Dashboard() {
                             <div className={`${cardClass} mt-5 overflow-hidden`}>
                                 {todays.length > 0 ? (
                                     <div className="bg-accent-soft divide-y divide-line">
-                                        {todays.map(({ event, occasion }) => (
-                                            <button
-                                                key={event.id + occasion.kind}
-                                                onClick={() => openRow(event)}
-                                                className="w-full flex items-center gap-3.5 px-4 py-4 text-left"
-                                            >
-                                                <IconTile name={event.icon} size={42} />
+                                        {todays.map((t) => (
+                                            <button key={t.key} onClick={t.open} className="w-full flex items-center gap-3.5 px-4 py-4 text-left">
+                                                {t.avatar}
                                                 <div className="min-w-0 flex-1">
                                                     <p className="text-[12px] text-accent">今日は</p>
-                                                    <p className="text-[15px] font-medium text-ink truncate">{event.name}から</p>
+                                                    <p className="text-[15px] font-medium text-ink truncate">{t.todayText}</p>
                                                 </div>
-                                                <p className="text-[22px] font-semibold text-ink tracking-tight">{occasion.label}</p>
+                                                {t.value && <p className="text-[22px] font-semibold text-ink tracking-tight">{t.value}</p>}
                                             </button>
                                         ))}
                                     </div>
@@ -181,18 +222,11 @@ export default function Dashboard() {
                                 {upcoming.length > 0 && (
                                     <div className="border-t border-line px-4 py-3 space-y-2">
                                         <p className="text-[12px] text-ink-3">もうすぐ</p>
-                                        {upcoming.map(({ event, occasion }) => (
-                                            <button
-                                                key={event.id + occasion.kind}
-                                                onClick={() => openRow(event)}
-                                                className="w-full flex items-center gap-2.5 text-left"
-                                            >
-                                                <Glyph name={event.icon} size={16} className="text-ink-3 shrink-0" />
-                                                <span className="flex-1 min-w-0 truncate text-[14px] text-ink">
-                                                    {event.name}
-                                                    <span className="text-ink-3"> · {occasion.label}</span>
-                                                </span>
-                                                <span className="text-[13px] text-ink-2 tabular-nums shrink-0">あと{occasion.inDays}日</span>
+                                        {upcoming.map((t) => (
+                                            <button key={t.key} onClick={t.open} className="w-full flex items-center gap-2.5 text-left">
+                                                {t.smallIcon}
+                                                <span className="flex-1 min-w-0 truncate text-[14px] text-ink">{t.upcomingText}</span>
+                                                <span className="text-[13px] text-ink-2 tabular-nums shrink-0">あと{t.inDays}日</span>
                                             </button>
                                         ))}
                                     </div>
@@ -286,6 +320,15 @@ export default function Dashboard() {
                     </>
                 )}
 
+                {tab === 'birthdays' && (
+                    <BirthdaysTab
+                        birthdays={birthdays}
+                        loading={birthdaysLoading}
+                        now={now}
+                        onOpen={(birthday) => setBirthdaySheet({ birthday })}
+                    />
+                )}
+
                 {tab === 'gifts' && (
                     <GiftsTab
                         gifts={gifts}
@@ -300,10 +343,11 @@ export default function Dashboard() {
 
             {/* Tab bar */}
             <nav className="fixed inset-x-0 bottom-0 z-40 bg-canvas/90 backdrop-blur-xl border-t border-line pb-[env(safe-area-inset-bottom)]">
-                <div className="max-w-xl mx-auto grid grid-cols-3">
+                <div className="max-w-xl mx-auto grid grid-cols-4">
                     {(
                         [
                             ['home', 'ホーム', <Glyph key="h" name="calendar" size={22} />],
+                            ['birthdays', '誕生日', <Glyph key="b" name="cake" size={22} />],
                             ['gifts', 'いただきもの', <Glyph key="g" name="gift" size={22} />],
                             ['settings', '設定', <Settings2 key="s" size={22} strokeWidth={1.6} />],
                         ] as [Tab, string, React.ReactNode][]
@@ -338,6 +382,26 @@ export default function Dashboard() {
                     onMark={handleMark}
                     onDelete={handleDelete}
                     onUpdate={updateEvent}
+                />
+            )}
+            {birthdaySheet && (
+                <BirthdaySheet
+                    key={birthdaySheet.birthday?.id ?? 'new'}
+                    birthday={birthdaySheet.birthday}
+                    gifts={gifts}
+                    now={now}
+                    onClose={() => setBirthdaySheet(null)}
+                    onSave={(data) =>
+                        birthdaySheet.birthday ? updateBirthday(birthdaySheet.birthday.id, data) : createBirthday(data)
+                    }
+                    onDelete={
+                        birthdaySheet.birthday
+                            ? () => {
+                                  const b = birthdaySheet.birthday!;
+                                  deleteBirthday(b.id).then(() => showToast(`${b.name}さんの誕生日を削除しました`));
+                              }
+                            : undefined
+                    }
                 />
             )}
             {giftSheet && (

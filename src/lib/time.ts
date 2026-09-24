@@ -162,3 +162,21 @@ export function upcomingOccasions(date: Date, now: number, timeZone?: string): O
 export function formatYMD({ y, m, d }: YMD): string {
     return `${y}年${m}月${d}日`;
 }
+
+export interface NextBirthday {
+    date: YMD;
+    inDays: number;
+    /** Age they turn on that day, when the birth year is known. */
+    age: number | null;
+}
+
+/** Next occurrence of a birthday on or after today (Feb 29 → Feb 28 in common years). */
+export function nextBirthday(b: { month: number; day: number; year: number | null }, now: number, timeZone?: string): NextBirthday {
+    const today = toYMD(now, timeZone);
+    for (let y = today.y; ; y++) {
+        const leapFix = b.month === 2 && b.day === 29 && new Date(y, 1, 29).getMonth() !== 1;
+        const date = { y, m: b.month, d: leapFix ? 28 : b.day };
+        const inDays = daysBetween(today, date);
+        if (inDays >= 0) return { date, inDays, age: b.year ? y - b.year : null };
+    }
+}

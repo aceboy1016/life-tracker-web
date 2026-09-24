@@ -73,7 +73,7 @@ export default function SettingsTab({ user, onLogOut }: { user: User; onLogOut: 
                     <div className="px-4 py-3.5">
                         <p className="text-[15px] font-medium text-ink">毎朝 8:00 ごろ</p>
                         <p className="text-[12px] text-ink-3 mt-1 leading-relaxed">
-                            今日が記念日のもの（例：プロポーズから2年）と、1週間以上やっていないことをまとめてお知らせします。何もない日は届きません。
+                            誕生日（当日と、人ごとに設定した日）、今日が記念日のもの（例：プロポーズから2年）、1週間以上やっていないことをまとめてお知らせします。何もない日は届きません。
                         </p>
                     </div>
 

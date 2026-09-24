@@ -2,7 +2,7 @@ import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
-import { buildDigest, type DigestEvent } from '@/lib/digest';
+import { buildDigest, type DigestBirthday, type DigestEvent } from '@/lib/digest';
 
 function adminApp(): App {
     if (getApps().length) return getApps()[0];
@@ -19,16 +19,29 @@ const STALE_TOKEN_ERRORS = new Set([
     'messaging/invalid-registration-token',
 ]);
 
-export async function loadUserEvents(uid: string): Promise<DigestEvent[]> {
-    const snap = await adminDb().collection('users').doc(uid).collection('events').get();
-    return snap.docs.map((d) => {
-        const data = d.data();
-        return {
-            name: String(data.name ?? ''),
-            kind: data.kind === 'milestone' ? 'milestone' : 'routine',
-            lastExecutedDate: data.lastExecutedDate instanceof Timestamp ? data.lastExecutedDate.toDate() : null,
-        };
-    });
+export async function loadUserData(uid: string): Promise<{ events: DigestEvent[]; birthdays: DigestBirthday[] }> {
+    const userRef = adminDb().collection('users').doc(uid);
+    const [eventSnap, birthdaySnap] = await Promise.all([userRef.collection('events').get(), userRef.collection('birthdays').get()]);
+    return {
+        events: eventSnap.docs.map((d) => {
+            const data = d.data();
+            return {
+                name: String(data.name ?? ''),
+                kind: data.kind === 'milestone' ? 'milestone' : 'routine',
+                lastExecutedDate: data.lastExecutedDate instanceof Timestamp ? data.lastExecutedDate.toDate() : null,
+            };
+        }),
+        birthdays: birthdaySnap.docs.map((d) => {
+            const data = d.data();
+            return {
+                name: String(data.name ?? ''),
+                month: Number(data.month) || 1,
+                day: Number(data.day) || 1,
+                year: typeof data.year === 'number' ? data.year : null,
+                remindDaysBefore: typeof data.remindDaysBefore === 'number' ? data.remindDaysBefore : 7,
+            };
+        }),
+    };
 }
 
 /** Sends a notification to every registered device of a user and prunes dead tokens. Returns delivered count. */
@@ -55,7 +68,7 @@ export async function sendToUser(uid: string, message: { title: string; body: st
 
 /** Daily digest for one user; skipped when nothing is overdue. */
 export async function sendDigestToUser(uid: string, now = Date.now()): Promise<number> {
-    const digest = buildDigest(await loadUserEvents(uid), now, 'Asia/Tokyo');
+    const digest = buildDigest(await loadUserData(uid), now, 'Asia/Tokyo');
     if (!digest) return 0;
     return sendToUser(uid, { ...digest, tag: 'daily-digest' });
 }
