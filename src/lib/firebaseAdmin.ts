@@ -3,6 +3,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { buildDigest, type DigestBirthday, type DigestEvent } from '@/lib/digest';
+import { tracksAnniversaries } from '@/types';
 
 function adminApp(): App {
     if (getApps().length) return getApps()[0];
@@ -27,7 +28,7 @@ export async function loadUserData(uid: string): Promise<{ events: DigestEvent[]
             const data = d.data();
             return {
                 name: String(data.name ?? ''),
-                isMilestone: data.group === 'milestone' || (data.group === undefined && data.kind === 'milestone'),
+                isMilestone: tracksAnniversaries(data.group) || (data.group === undefined && data.kind === 'milestone'),
                 lastExecutedDate: data.lastExecutedDate instanceof Timestamp ? data.lastExecutedDate.toDate() : null,
             };
         }),

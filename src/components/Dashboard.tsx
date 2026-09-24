@@ -19,7 +19,7 @@ import BirthdaySheet from '@/components/BirthdaySheet';
 import SettingsTab from '@/components/SettingsTab';
 import { GroupHeader, Toast, ToastState, cardClass } from '@/components/ui';
 import { Avatar, Glyph, IconTile } from '@/lib/icons';
-import { LifeEvent, EventGroup, EVENT_GROUPS, Gift, Birthday } from '@/types';
+import { LifeEvent, EventGroup, EVENT_GROUPS, Gift, Birthday, tracksAnniversaries } from '@/types';
 import { nextBirthday, upcomingOccasions } from '@/lib/time';
 
 type Tab = 'home' | 'birthdays' | 'gifts' | 'settings';
@@ -87,7 +87,7 @@ export default function Dashboard() {
         [deleteEvent, showToast]
     );
 
-    const milestones = useMemo(() => events.filter((e) => e.group === 'milestone'), [events]);
+    const milestones = useMemo(() => events.filter((e) => tracksAnniversaries(e.group)), [events]);
 
     // Today's anniversaries, round-number days and birthdays, and what's coming up soon.
     const { todays, upcoming } = useMemo(() => {

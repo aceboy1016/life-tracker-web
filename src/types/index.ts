@@ -7,16 +7,22 @@ export type EventCategory =
     | 'household'
     | 'electronics';
 
-/** How an item is grouped on the home screen. Anniversaries and round-number days are tracked for milestones only. */
-export type EventGroup = 'milestone' | 'purchase' | 'contract' | 'routine' | 'other';
+/** How an item is grouped on the home screen. */
+export type EventGroup = 'milestone' | 'business' | 'purchase' | 'contract' | 'routine' | 'other';
 
 export const EVENT_GROUPS: { key: EventGroup; label: string; hint: string; icon: string }[] = [
     { key: 'milestone', label: '人生の節目', hint: '付き合った日、プロポーズ、入社日など。記念日をお知らせします', icon: 'heart' },
+    { key: 'business', label: '仕事・ビジネス', hint: '業務委託、事業やサービスの開始日など。周年をお知らせします', icon: 'handshake' },
     { key: 'purchase', label: '買ったもの', hint: 'スマホ、パソコン、自転車など。買ってからの期間がわかります', icon: 'laptop' },
     { key: 'contract', label: '契約・入会', hint: '回線、ジム、保険など。契約してからの期間がわかります', icon: 'wifi' },
     { key: 'routine', label: '定期的なこと', hint: '髪を切る、歯医者など。やったら日付を更新します', icon: 'scissors' },
     { key: 'other', label: 'その他', hint: '', icon: 'star' },
 ];
+
+/** Groups whose anniversaries and round-number days (100日, 1,000日…) are shown and notified. */
+export function tracksAnniversaries(group: string | undefined): boolean {
+    return group === 'milestone' || group === 'business';
+}
 
 export interface LifeEvent {
     id: string;
