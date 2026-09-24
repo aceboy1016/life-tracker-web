@@ -1,7 +1,87 @@
 @import "tailwindcss";
 
-@theme {
-  --color-gray-950: #030712;
+/* Quiet, pale palette: warm off-white, soft charcoal, and muted tints used only in small doses. */
+:root {
+  --canvas: #f7f6f3;
+  --surface: #ffffff;
+  --surface-2: #f1efeb;
+  --line: rgba(60, 52, 40, 0.09);
+  --ink: #2d2b28;
+  --ink-2: #6f6b64;
+  --ink-3: #a7a29a;
+  --accent: #7d9186;
+  --accent-soft: #edf1ec;
+  --alert: #b0766d;
+  --alert-soft: #f6ebe8;
+
+  --tint-sand: #f3ede3;
+  --tint-sand-ink: #9a8567;
+  --tint-sage: #e9efe9;
+  --tint-sage-ink: #6f8a77;
+  --tint-mist: #e8edf2;
+  --tint-mist-ink: #6d8195;
+  --tint-blush: #f5eae7;
+  --tint-blush-ink: #ad7b72;
+  --tint-lilac: #eeebf3;
+  --tint-lilac-ink: #857ca0;
+  --tint-stone: #eeedea;
+  --tint-stone-ink: #85817a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #161615;
+    --surface: #1f1f1d;
+    --surface-2: #282826;
+    --line: rgba(255, 250, 240, 0.08);
+    --ink: #ecebe7;
+    --ink-2: #aaa69e;
+    --ink-3: #6f6c66;
+    --accent: #9fb4a8;
+    --accent-soft: #222a25;
+    --alert: #d59b91;
+    --alert-soft: #33201d;
+
+    --tint-sand: #2c2822;
+    --tint-sand-ink: #c9b594;
+    --tint-sage: #232a25;
+    --tint-sage-ink: #9fbca8;
+    --tint-mist: #222831;
+    --tint-mist-ink: #9eb2c7;
+    --tint-blush: #30231f;
+    --tint-blush-ink: #d7a79d;
+    --tint-lilac: #28252f;
+    --tint-lilac-ink: #b3a9cc;
+    --tint-stone: #292826;
+    --tint-stone-ink: #b0aca4;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-alert: var(--alert);
+  --color-alert-soft: var(--alert-soft);
+  --color-tint-sand: var(--tint-sand);
+  --color-tint-sand-ink: var(--tint-sand-ink);
+  --color-tint-sage: var(--tint-sage);
+  --color-tint-sage-ink: var(--tint-sage-ink);
+  --color-tint-mist: var(--tint-mist);
+  --color-tint-mist-ink: var(--tint-mist-ink);
+  --color-tint-blush: var(--tint-blush);
+  --color-tint-blush-ink: var(--tint-blush-ink);
+  --color-tint-lilac: var(--tint-lilac);
+  --color-tint-lilac-ink: var(--tint-lilac-ink);
+  --color-tint-stone: var(--tint-stone);
+  --color-tint-stone-ink: var(--tint-stone-ink);
+  --font-sans: var(--font-inter), var(--font-zen), system-ui, sans-serif;
 }
 
 * {
@@ -10,37 +90,19 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  color-scheme: light dark;
 }
 
-/* Scrollbar hide utility */
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-feature-settings: "palt";
+}
+
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
-}
-
-/* Modal slide-up animation */
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Line clamp */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }

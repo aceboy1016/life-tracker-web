@@ -24,6 +24,11 @@ function init() {
   }
 }
 
+export function getFirebaseApp(): FirebaseApp {
+  init();
+  return _app!;
+}
+
 export function getFirebaseAuth(): Auth {
   init();
   return _auth!;

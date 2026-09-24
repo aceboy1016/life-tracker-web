@@ -1,237 +1,463 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+import { Plus, Search, Settings2, X } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
+import { useGifts } from '@/hooks/useGifts';
+import { useBirthdays } from '@/hooks/useBirthdays';
 import { useAuth } from '@/contexts/AuthContext';
-import EventCard from '@/components/EventCard';
+import { useNow } from '@/hooks/useNow';
+import { MilestoneRow, RoutineRow } from '@/components/EventCard';
 import AddEventModal from '@/components/AddEventModal';
 import EventDetailModal from '@/components/EventDetailModal';
-import { LifeEvent, EventCategory, CATEGORY_CONFIG } from '@/types';
-import { Plus, LogOut, Activity, Search, ChevronDown } from 'lucide-react';
+import GiftsTab from '@/components/GiftsTab';
+import GiftSheet from '@/components/GiftSheet';
+import BirthdaysTab from '@/components/BirthdaysTab';
+import BirthdaySheet from '@/components/BirthdaySheet';
+import SettingsTab from '@/components/SettingsTab';
+import { GroupHeader, Segmented, Toast, ToastState, cardClass } from '@/components/ui';
+import { Avatar, Glyph, IconTile } from '@/lib/icons';
+import { LifeEvent, EventKind, Gift, Birthday } from '@/types';
+import { getUrgency, nextBirthday, upcomingOccasions } from '@/lib/time';
 
-const ALL_CATEGORIES = 'all';
+type Tab = 'home' | 'birthdays' | 'gifts' | 'settings';
+
+/** A line in the home "today" card: an anniversary or a birthday. */
+interface TodayItem {
+    key: string;
+    inDays: number;
+    avatar: React.ReactNode;
+    smallIcon: React.ReactNode;
+    todayText: string;
+    value: string;
+    upcomingText: string;
+    open: () => void;
+}
+
+const SUGGESTIONS: Record<EventKind, { name: string; icon: string }[]> = {
+    milestone: [
+        { name: '付き合った日', icon: 'heart' },
+        { name: 'プロポーズした日', icon: 'ring' },
+        { name: '結婚式', icon: 'ring' },
+        { name: '今の家に引っ越した日', icon: 'home' },
+        { name: '入社した日', icon: 'briefcase' },
+        { name: '子どもが生まれた日', icon: 'baby' },
+    ],
+    routine: [
+        { name: '髪を切る', icon: 'scissors' },
+        { name: '歯医者', icon: 'tooth' },
+        { name: 'ジム', icon: 'dumbbell' },
+        { name: '実家に電話', icon: 'phone' },
+        { name: '洗車', icon: 'car' },
+        { name: '植物に水をやる', icon: 'leaf' },
+    ],
+};
+
+/** Oldest (or never done) first. */
+function compareByElapsed(a: LifeEvent, b: LifeEvent): number {
+    const at = a.lastExecutedDate?.getTime() ?? -Infinity;
+    const bt = b.lastExecutedDate?.getTime() ?? -Infinity;
+    return at === bt ? a.name.localeCompare(b.name, 'ja') : at - bt;
+}
 
 export default function Dashboard() {
     const { user, logOut } = useAuth();
     const { events, loading, createEvent, markAsExecuted, updateEvent, deleteEvent } = useEvents();
-    const [showAdd, setShowAdd] = useState(false);
-    const [selectedEvent, setSelectedEvent] = useState<LifeEvent | null>(null);
+    const { gifts, loading: giftsLoading, createGift, updateGift, deleteGift } = useGifts();
+    const { birthdays, loading: birthdaysLoading, createBirthday, updateBirthday, deleteBirthday } = useBirthdays();
+    const now = useNow();
+
+    const [tab, setTab] = useState<Tab>('home');
+    const [kind, setKind] = useState<EventKind>('milestone');
     const [search, setSearch] = useState('');
-    const [filterCategory, setFilterCategory] = useState<EventCategory | 'all'>(ALL_CATEGORIES);
-    const [sortBy, setSortBy] = useState<'name' | 'elapsed'>('elapsed');
+    const [addEvent, setAddEvent] = useState<{ name: string; kind: EventKind; icon: string } | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [giftSheet, setGiftSheet] = useState<{ gift?: Gift; from?: string } | null>(null);
+    const [birthdaySheet, setBirthdaySheet] = useState<{ birthday?: Birthday } | null>(null);
+    const [toast, setToast] = useState<ToastState | null>(null);
 
-    const filtered = useMemo(() => {
-        let list = [...events];
+    const selectedEvent = events.find((e) => e.id === selectedId) ?? null;
 
-        // category filter
-        if (filterCategory !== 'all') {
-            list = list.filter((e) => e.category === filterCategory);
-        }
+    const showToast = useCallback((message: string, onUndo?: () => void) => {
+        setToast({ id: Date.now(), message, onUndo });
+    }, []);
+    const dismissToast = useCallback(() => setToast(null), []);
 
-        // search
-        if (search.trim()) {
-            const q = search.toLowerCase();
-            list = list.filter(
-                (e) => e.name.toLowerCase().includes(q) || e.notes.toLowerCase().includes(q)
-            );
-        }
-
-        // sort
-        if (sortBy === 'elapsed') {
-            list.sort((a, b) => {
-                if (!a.lastExecutedDate) return -1;
-                if (!b.lastExecutedDate) return 1;
-                return a.lastExecutedDate.getTime() - b.lastExecutedDate.getTime();
+    const handleMark = useCallback(
+        (event: LifeEvent, date?: Date) => {
+            const previous = event.lastExecutedDate;
+            markAsExecuted(event.id, date).catch(() => showToast('記録できませんでした'));
+            showToast(`「${event.name}」を記録しました`, () => {
+                updateEvent(event.id, { lastExecutedDate: previous });
             });
-        } else {
-            list.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+        },
+        [markAsExecuted, updateEvent, showToast]
+    );
+
+    const handleDelete = useCallback(
+        (event: LifeEvent) => {
+            deleteEvent(event.id)
+                .then(() => showToast(`「${event.name}」を削除しました`))
+                .catch(() => showToast('削除できませんでした'));
+        },
+        [deleteEvent, showToast]
+    );
+
+    const milestones = useMemo(
+        () =>
+            events
+                .filter((e) => e.kind === 'milestone')
+                .sort((a, b) => (b.lastExecutedDate?.getTime() ?? 0) - (a.lastExecutedDate?.getTime() ?? 0)),
+        [events]
+    );
+    const routines = useMemo(() => events.filter((e) => e.kind === 'routine').sort(compareByElapsed), [events]);
+
+    // Today's anniversaries, round-number days and birthdays, and what's coming up soon.
+    const { todays, upcoming } = useMemo(() => {
+        const all: TodayItem[] = [];
+        for (const e of milestones) {
+            if (!e.lastExecutedDate) continue;
+            for (const o of upcomingOccasions(e.lastExecutedDate, now)) {
+                all.push({
+                    key: e.id + o.kind,
+                    inDays: o.inDays,
+                    avatar: <IconTile name={e.icon} size={42} />,
+                    smallIcon: <Glyph name={e.icon} size={16} className="text-ink-3 shrink-0" />,
+                    todayText: `${e.name}から`,
+                    value: o.label,
+                    upcomingText: `${e.name} · ${o.label}`,
+                    open: () => setSelectedId(e.id),
+                });
+            }
         }
+        for (const b of birthdays) {
+            const next = nextBirthday(b, now);
+            all.push({
+                key: 'b' + b.id,
+                inDays: next.inDays,
+                avatar: <Avatar name={b.name} size={42} />,
+                smallIcon: <Glyph name="cake" size={16} className="text-ink-3 shrink-0" />,
+                todayText: `${b.name}の誕生日`,
+                value: next.age !== null ? `${next.age}歳` : '',
+                upcomingText: `${b.name}の誕生日${next.age !== null ? ` · ${next.age}歳` : ''}`,
+                open: () => setBirthdaySheet({ birthday: b }),
+            });
+        }
+        all.sort((a, b) => a.inDays - b.inDays);
+        return {
+            todays: all.filter((x) => x.inDays === 0),
+            upcoming: all.filter((x) => x.inDays > 0 && x.inDays <= 60).slice(0, 4),
+        };
+    }, [milestones, birthdays, now]);
 
-        return list;
-    }, [events, filterCategory, search, sortBy]);
+    const overdue = routines.filter((e) => getUrgency(e.lastExecutedDate, now) === 'over').length;
 
-    // Stats
-    const dangerCount = events.filter((e) => {
-        if (!e.lastExecutedDate) return true;
-        const hours = (Date.now() - e.lastExecutedDate.getTime()) / 3600000;
-        return hours >= 168;
-    }).length;
+    const q = search.trim().toLowerCase();
+    const matches = (e: LifeEvent) => !q || e.name.toLowerCase().includes(q) || e.notes.toLowerCase().includes(q);
+    const visibleMilestones = milestones.filter(matches);
+    const visibleRoutines = routines.filter(matches);
+    const staleRoutines = visibleRoutines.filter((e) => {
+        const u = getUrgency(e.lastExecutedDate, now);
+        return u === 'over' || u === 'never';
+    });
+    const recentRoutines = visibleRoutines.filter((e) => !staleRoutines.includes(e));
 
-    const categories = Object.entries(CATEGORY_CONFIG) as [EventCategory, typeof CATEGORY_CONFIG[EventCategory]][];
+    const knownNames = useMemo(() => [...new Set(gifts.map((g) => g.from))], [gifts]);
+    const openRow = (e: LifeEvent) => setSelectedId(e.id);
+
+    const title = { home: 'ホーム', birthdays: '誕生日', gifts: 'いただきもの', settings: '設定' }[tab];
 
     return (
-        <div className="min-h-screen bg-gray-950">
-            {/* Background */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-60 -left-60 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-60 -right-60 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl" />
-            </div>
-
-            {/* Header */}
-            <header className="sticky top-0 z-30 bg-gray-950/80 backdrop-blur-xl border-b border-white/8">
-                <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <Activity size={18} className="text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-white font-bold text-base leading-none">LifeTracker</h1>
-                            <p className="text-white/35 text-xs mt-0.5 leading-none">{user?.email}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {dangerCount > 0 && (
-                            <span className="px-2.5 py-1 bg-rose-500/20 border border-rose-500/30 text-rose-400 rounded-full text-xs font-semibold">
-                                ⚠️ {dangerCount}件
-                            </span>
-                        )}
+        <div className="min-h-dvh bg-canvas">
+            <header className="sticky top-0 z-30 bg-canvas/85 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
+                <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
+                    <h1 className="text-[17px] font-bold text-ink">{title}</h1>
+                    {tab !== 'settings' && (
                         <button
-                            onClick={logOut}
-                            className="w-9 h-9 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center text-white/40 hover:text-white/70 transition-all"
-                            title="ログアウト"
+                            onClick={() =>
+                                tab === 'gifts'
+                                    ? setGiftSheet({})
+                                    : tab === 'birthdays'
+                                      ? setBirthdaySheet({})
+                                      : setAddEvent({ name: '', kind, icon: kind === 'milestone' ? 'heart' : 'star' })
+                            }
+                            aria-label="追加"
+                            className="w-9 h-9 rounded-full bg-ink text-canvas flex items-center justify-center hover:opacity-90"
                         >
-                            <LogOut size={16} />
+                            <Plus size={18} strokeWidth={2} />
                         </button>
-                    </div>
+                    )}
                 </div>
             </header>
 
-            <main className="max-w-2xl mx-auto px-4 pb-28">
-                {/* Stats bar */}
-                <div className="py-5 flex items-center gap-4">
-                    <div className="flex-1 bg-white/4 border border-white/8 rounded-2xl px-4 py-3">
-                        <p className="text-white/40 text-xs">総イベント数</p>
-                        <p className="text-white font-bold text-xl">{events.length}</p>
-                    </div>
-                    <div className="flex-1 bg-white/4 border border-white/8 rounded-2xl px-4 py-3">
-                        <p className="text-white/40 text-xs">要注意</p>
-                        <p className={`font-bold text-xl ${dangerCount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            {dangerCount}
-                        </p>
-                    </div>
-                    <div className="flex-1 bg-white/4 border border-white/8 rounded-2xl px-4 py-3">
-                        <p className="text-white/40 text-xs">今日実行済</p>
-                        <p className="text-emerald-400 font-bold text-xl">
-                            {events.filter((e) => {
-                                if (!e.lastExecutedDate) return false;
-                                const today = new Date();
-                                const d = e.lastExecutedDate;
-                                return d.getDate() === today.getDate() && d.getMonth() === today.getMonth();
-                            }).length}
-                        </p>
-                    </div>
-                </div>
+            <main className="max-w-xl mx-auto px-5 pt-2 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+                {tab === 'home' && (
+                    <>
+                        {/* Today */}
+                        <section className="mb-7">
+                            <p className="text-[34px] font-bold text-ink leading-none tracking-tight">{format(now, 'M月d日', { locale: ja })}</p>
+                            <p className="text-[13px] text-ink-3 mt-2">{format(now, 'yyyy年 · EEEE', { locale: ja })}</p>
 
-                {/* Search & filters */}
-                <div className="space-y-3 mb-5">
-                    {/* Search */}
-                    <div className="relative">
-                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="イベントを検索..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-white/25 focus:outline-none focus:border-white/20 transition-all text-sm"
-                        />
-                    </div>
+                            <div className={`${cardClass} mt-5 overflow-hidden`}>
+                                {todays.length > 0 ? (
+                                    <div className="bg-accent-soft divide-y divide-line">
+                                        {todays.map((t) => (
+                                            <button key={t.key} onClick={t.open} className="w-full flex items-center gap-3.5 px-4 py-4 text-left">
+                                                {t.avatar}
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-[12px] text-accent">今日は</p>
+                                                    <p className="text-[15px] font-medium text-ink truncate">{t.todayText}</p>
+                                                </div>
+                                                {t.value && <p className="text-[22px] font-semibold text-ink tracking-tight">{t.value}</p>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="px-4 py-4">
+                                        <p className="text-[14px] text-ink-2">今日は記念日ではありません</p>
+                                    </div>
+                                )}
+                                {upcoming.length > 0 && (
+                                    <div className="border-t border-line px-4 py-3 space-y-2">
+                                        <p className="text-[12px] text-ink-3">もうすぐ</p>
+                                        {upcoming.map((t) => (
+                                            <button key={t.key} onClick={t.open} className="w-full flex items-center gap-2.5 text-left">
+                                                {t.smallIcon}
+                                                <span className="flex-1 min-w-0 truncate text-[14px] text-ink">{t.upcomingText}</span>
+                                                <span className="text-[13px] text-ink-2 tabular-nums shrink-0">あと{t.inDays}日</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {overdue > 0 && (
+                                    <button
+                                        onClick={() => setKind('routine')}
+                                        className="w-full border-t border-line px-4 py-3 flex items-center justify-between text-left"
+                                    >
+                                        <span className="text-[14px] text-ink">しばらくやっていないこと</span>
+                                        <span className="text-[13px] text-alert tabular-nums">{overdue}件</span>
+                                    </button>
+                                )}
+                            </div>
+                        </section>
 
-                    {/* Category filter */}
-                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                        <button
-                            onClick={() => setFilterCategory('all')}
-                            className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${filterCategory === 'all'
-                                    ? 'bg-indigo-500/30 border-indigo-400/50 text-indigo-300'
-                                    : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
-                                }`}
-                        >
-                            すべて
-                        </button>
-                        {categories.map(([key, cfg]) => (
-                            <button
-                                key={key}
-                                onClick={() => setFilterCategory(key)}
-                                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${filterCategory === key
-                                        ? 'bg-indigo-500/30 border-indigo-400/50 text-indigo-300'
-                                        : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
-                                    }`}
-                            >
-                                <span>{cfg.emoji}</span>
-                                <span>{cfg.label}</span>
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Sort */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-white/30 text-xs flex-shrink-0">並び替え:</span>
-                        <button
-                            onClick={() => setSortBy(sortBy === 'elapsed' ? 'name' : 'elapsed')}
-                            className="flex items-center gap-1 text-xs text-white/50 hover:text-white/80 transition-colors"
-                        >
-                            {sortBy === 'elapsed' ? '経過時間順' : '名前順'}
-                            <ChevronDown size={12} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Event list */}
-                {loading ? (
-                    <div className="flex items-center justify-center py-20">
-                        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                ) : filtered.length === 0 ? (
-                    <div className="text-center py-20">
-                        <p className="text-4xl mb-4">📋</p>
-                        <p className="text-white/40 text-base font-medium">
-                            {events.length === 0 ? 'まだイベントがありません' : '一致するイベントがありません'}
-                        </p>
-                        {events.length === 0 && (
-                            <p className="text-white/25 text-sm mt-1">右下の＋ボタンから追加しましょう</p>
-                        )}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {filtered.map((event) => (
-                            <EventCard
-                                key={event.id}
-                                event={event}
-                                onMark={markAsExecuted}
-                                onDelete={deleteEvent}
-                                onClick={setSelectedEvent}
+                        <div className="space-y-2.5 mb-6">
+                            <Segmented
+                                value={kind}
+                                onChange={setKind}
+                                options={[
+                                    ['milestone', `記念日・できごと ${milestones.length}`],
+                                    ['routine', `くり返すこと ${routines.length}`],
+                                ]}
                             />
-                        ))}
-                    </div>
+                            {events.length > 5 && (
+                                <div className="relative">
+                                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3" />
+                                    <input
+                                        type="search"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="検索"
+                                        className="w-full bg-surface border border-line rounded-2xl pl-10 pr-10 py-2.5 text-[14px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25 [&::-webkit-search-cancel-button]:hidden"
+                                    />
+                                    {search && (
+                                        <button
+                                            onClick={() => setSearch('')}
+                                            aria-label="検索をクリア"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-2 text-ink-2 flex items-center justify-center"
+                                        >
+                                            <X size={13} />
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {loading ? (
+                            <div className={`${cardClass} h-48`} />
+                        ) : kind === 'milestone' ? (
+                            visibleMilestones.length > 0 ? (
+                                <RowGroup>
+                                    {visibleMilestones.map((e) => (
+                                        <MilestoneRow key={e.id} event={e} now={now} onOpen={openRow} />
+                                    ))}
+                                </RowGroup>
+                            ) : (
+                                <Suggestions
+                                    kind="milestone"
+                                    empty={!q}
+                                    onPick={(s) => setAddEvent({ ...s, kind: 'milestone' })}
+                                />
+                            )
+                        ) : visibleRoutines.length > 0 ? (
+                            <div className="space-y-6">
+                                {staleRoutines.length > 0 && (
+                                    <section>
+                                        <GroupHeader title="しばらくやっていない" count={staleRoutines.length} />
+                                        <RowGroup>
+                                            {staleRoutines.map((e) => (
+                                                <RoutineRow key={e.id} event={e} now={now} onOpen={openRow} onMark={handleMark} />
+                                            ))}
+                                        </RowGroup>
+                                    </section>
+                                )}
+                                {recentRoutines.length > 0 && (
+                                    <section>
+                                        <GroupHeader title="最近" count={recentRoutines.length} />
+                                        <RowGroup>
+                                            {recentRoutines.map((e) => (
+                                                <RoutineRow key={e.id} event={e} now={now} onOpen={openRow} onMark={handleMark} />
+                                            ))}
+                                        </RowGroup>
+                                    </section>
+                                )}
+                            </div>
+                        ) : (
+                            <Suggestions kind="routine" empty={!q} onPick={(s) => setAddEvent({ ...s, kind: 'routine' })} />
+                        )}
+                    </>
                 )}
+
+                {tab === 'birthdays' && (
+                    <BirthdaysTab
+                        birthdays={birthdays}
+                        loading={birthdaysLoading}
+                        now={now}
+                        onOpen={(birthday) => setBirthdaySheet({ birthday })}
+                    />
+                )}
+
+                {tab === 'gifts' && (
+                    <GiftsTab
+                        gifts={gifts}
+                        loading={giftsLoading}
+                        onOpen={(gift) => setGiftSheet({ gift })}
+                        onAddFor={(from) => setGiftSheet({ from })}
+                    />
+                )}
+
+                {tab === 'settings' && user && <SettingsTab user={user} onLogOut={logOut} />}
             </main>
 
-            {/* FAB */}
-            <div className="fixed bottom-6 right-4 sm:right-6 z-40">
-                <button
-                    onClick={() => setShowAdd(true)}
-                    id="add-event-fab"
-                    className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/40 transition-all active:scale-95 hover:scale-105"
-                >
-                    <Plus size={26} className="text-white" />
-                </button>
-            </div>
+            {/* Tab bar */}
+            <nav className="fixed inset-x-0 bottom-0 z-40 bg-canvas/90 backdrop-blur-xl border-t border-line pb-[env(safe-area-inset-bottom)]">
+                <div className="max-w-xl mx-auto grid grid-cols-4">
+                    {(
+                        [
+                            ['home', 'ホーム', <Glyph key="h" name="calendar" size={22} />],
+                            ['birthdays', '誕生日', <Glyph key="b" name="cake" size={22} />],
+                            ['gifts', 'いただきもの', <Glyph key="g" name="gift" size={22} />],
+                            ['settings', '設定', <Settings2 key="s" size={22} strokeWidth={1.6} />],
+                        ] as [Tab, string, React.ReactNode][]
+                    ).map(([key, label, icon]) => (
+                        <button
+                            key={key}
+                            onClick={() => {
+                                setTab(key);
+                                window.scrollTo(0, 0);
+                            }}
+                            aria-current={tab === key ? 'page' : undefined}
+                            className={`flex flex-col items-center gap-1 pt-2.5 pb-2 text-[10px] font-medium ${
+                                tab === key ? 'text-ink' : 'text-ink-3 hover:text-ink-2'
+                            }`}
+                        >
+                            {icon}
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            </nav>
 
-            {/* Modals */}
-            {showAdd && (
-                <AddEventModal
-                    onClose={() => setShowAdd(false)}
-                    onAdd={createEvent}
-                />
-            )}
+            <Toast toast={toast} onDismiss={dismissToast} />
+
+            {addEvent && <AddEventModal initial={addEvent} onClose={() => setAddEvent(null)} onAdd={createEvent} />}
             {selectedEvent && (
                 <EventDetailModal
+                    key={selectedEvent.id}
                     event={selectedEvent}
-                    onClose={() => setSelectedEvent(null)}
-                    onMark={markAsExecuted}
-                    onDelete={deleteEvent}
+                    now={now}
+                    onClose={() => setSelectedId(null)}
+                    onMark={handleMark}
+                    onDelete={handleDelete}
                     onUpdate={updateEvent}
                 />
             )}
+            {birthdaySheet && (
+                <BirthdaySheet
+                    key={birthdaySheet.birthday?.id ?? 'new'}
+                    birthday={birthdaySheet.birthday}
+                    gifts={gifts}
+                    now={now}
+                    onClose={() => setBirthdaySheet(null)}
+                    onSave={(data) =>
+                        birthdaySheet.birthday ? updateBirthday(birthdaySheet.birthday.id, data) : createBirthday(data)
+                    }
+                    onDelete={
+                        birthdaySheet.birthday
+                            ? () => {
+                                  const b = birthdaySheet.birthday!;
+                                  deleteBirthday(b.id).then(() => showToast(`${b.name}さんの誕生日を削除しました`));
+                              }
+                            : undefined
+                    }
+                />
+            )}
+            {giftSheet && (
+                <GiftSheet
+                    key={giftSheet.gift?.id ?? 'new'}
+                    gift={giftSheet.gift}
+                    initialFrom={giftSheet.from}
+                    knownNames={knownNames}
+                    onClose={() => setGiftSheet(null)}
+                    onSave={(data) => (giftSheet.gift ? updateGift(giftSheet.gift.id, data) : createGift(data))}
+                    onDelete={
+                        giftSheet.gift
+                            ? () => {
+                                  const g = giftSheet.gift!;
+                                  deleteGift(g.id).then(() => showToast(`${g.from}さんの記録を削除しました`));
+                              }
+                            : undefined
+                    }
+                />
+            )}
+        </div>
+    );
+}
+
+function RowGroup({ children }: { children: React.ReactNode }) {
+    return <div className={`${cardClass} divide-y divide-line overflow-hidden`}>{children}</div>;
+}
+
+function Suggestions({
+    kind,
+    empty,
+    onPick,
+}: {
+    kind: EventKind;
+    empty: boolean;
+    onPick: (s: { name: string; icon: string }) => void;
+}) {
+    if (!empty) return <p className="text-center text-[14px] text-ink-3 py-12">一致するものはありません</p>;
+    return (
+        <div>
+            <p className="text-[13px] text-ink-2 px-1 mb-3">
+                {kind === 'milestone' ? '覚えておきたい日を追加しましょう' : '定期的にやることを追加しましょう'}
+            </p>
+            <RowGroup>
+                {SUGGESTIONS[kind].map((s) => (
+                    <button
+                        key={s.name}
+                        onClick={() => onPick(s)}
+                        className="w-full flex items-center gap-3.5 px-4 py-3 text-left hover:bg-surface-2/60"
+                    >
+                        <IconTile name={s.icon} size={36} />
+                        <span className="flex-1 text-[15px] text-ink">{s.name}</span>
+                        <Plus size={16} className="text-ink-3" />
+                    </button>
+                ))}
+            </RowGroup>
         </div>
     );
 }

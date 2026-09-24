@@ -2,9 +2,40 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Activity } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { Segmented, cardClass, inputClass, primaryButtonClass } from '@/components/ui';
+import { IconTile } from '@/lib/icons';
 
 type Mode = 'signin' | 'signup' | 'reset';
+
+const PREVIEW = [
+    { icon: 'ring', name: 'プロポーズした日', value: '732', unit: '日', sub: '2年' },
+    { icon: 'scissors', name: '髪を切る', value: '38', unit: '日前', sub: '前回 8月17日' },
+    { icon: 'gift', name: '結婚祝い · 田中さん', value: '¥30,000', unit: '', sub: 'お返し前' },
+];
+function errorMessage(e: unknown): string {
+    const err = e as { code?: string; message?: string };
+    switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+            return 'メールアドレスまたはパスワードが正しくありません';
+        case 'auth/email-already-in-use':
+            return 'このメールアドレスは登録済みです。ログインしてください';
+        case 'auth/weak-password':
+            return 'パスワードは6文字以上にしてください';
+        case 'auth/invalid-email':
+            return 'メールアドレスの形式が正しくありません';
+        case 'auth/too-many-requests':
+            return '試行回数が多すぎます。しばらく待ってから再度お試しください';
+        case 'auth/invalid-api-key':
+            return '設定エラー: Firebase APIキーが正しくありません';
+        case 'auth/network-request-failed':
+            return 'ネットワークエラー。接続を確認してください';
+        default:
+            return `エラー: ${err.code ?? err.message ?? '不明なエラー'}`;
+    }
+}
 
 export default function AuthPage() {
     const { signIn, signUp, resetPassword } = useAuth();
@@ -15,6 +46,12 @@ export default function AuthPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+
+    const switchMode = (next: Mode) => {
+        setMode(next);
+        setError('');
+        setMessage('');
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,129 +65,148 @@ export default function AuthPage() {
                 await signUp(email, password);
             } else {
                 await resetPassword(email);
-                setMessage('パスワードリセットメールを送信しました');
+                setMessage('パスワード再設定メールを送信しました');
             }
         } catch (e: unknown) {
-            const err = e as { code?: string; message?: string };
-            if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-                setError('メールアドレスまたはパスワードが正しくありません');
-            } else if (err.code === 'auth/email-already-in-use') {
-                setError('このメールアドレスは既に登録済みです。ログインページからお試しください');
-            } else if (err.code === 'auth/weak-password') {
-                setError('パスワードは6文字以上にしてください');
-            } else if (err.code === 'auth/too-many-requests') {
-                setError('試行回数が多すぎます。しばらく待ってから再度お試しください');
-            } else if (err.code === 'auth/invalid-api-key') {
-                setError('設定エラー: Firebase APIキーが正しくありません');
-            } else if (err.code === 'auth/network-request-failed') {
-                setError('ネットワークエラー。接続を確認してください');
-            } else {
-                setError(`エラー: ${err.code ?? err.message ?? '不明なエラー'}`);
-            }
+            setError(errorMessage(e));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-            {/* Background glow */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
-            </div>
-
-            <div className="relative w-full max-w-sm">
-                {/* Logo */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/30 mb-4">
-                        <Activity size={28} className="text-white" />
+        <div className="min-h-dvh bg-canvas flex items-center justify-center px-5 py-12">
+            <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                <div>
+                    <p className="text-[13px] font-medium text-ink-3 tracking-wide">LifeTracker</p>
+                    <h1 className="mt-3 text-[30px] sm:text-[34px] leading-[1.35] font-bold text-ink">
+                        あの日から何日。
+                        <br />
+                        前回はいつ。
+                        <br />
+                        誰に何をもらったか。
+                    </h1>
+                    <p className="mt-4 text-[14px] text-ink-2 leading-relaxed">
+                        記念日、くり返すこと、いただきものを
+                        <br className="hidden sm:block" />
+                        ひとつの場所に。
+                    </p>
+                    <div className={`${cardClass} mt-8 divide-y divide-line hidden lg:block`} aria-hidden="true">
+                        {PREVIEW.map((p) => (
+                            <div key={p.name} className="flex items-center gap-3.5 px-4 py-3.5">
+                                <IconTile name={p.icon} size={40} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[15px] font-medium text-ink truncate">{p.name}</p>
+                                    <p className="text-[12px] text-ink-3 mt-0.5">{p.sub}</p>
+                                </div>
+                                <p className="text-ink tabular-nums">
+                                    <span className="text-[20px] font-semibold tracking-tight">{p.value}</span>
+                                    {p.unit && <span className="text-[12px] text-ink-2 ml-0.5">{p.unit}</span>}
+                                </p>
+                            </div>
+                        ))}
                     </div>
-                    <h1 className="text-2xl font-bold text-white">LifeTracker</h1>
-                    <p className="text-white/40 text-sm mt-1">何をいつしたか、ずっと覚えてる</p>
                 </div>
 
-                {/* Card */}
-                <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-                    <h2 className="text-lg font-semibold text-white mb-5">
-                        {mode === 'signin' ? 'ログイン' : mode === 'signup' ? 'アカウント作成' : 'パスワードリセット'}
-                    </h2>
+                <div className={`${cardClass} p-6 sm:p-7`}>
+                    {mode === 'reset' ? (
+                        <div className="mb-6">
+                            <h2 className="text-[18px] font-bold text-ink">パスワードの再設定</h2>
+                            <p className="text-[13px] text-ink-2 mt-1">登録したメールアドレスに再設定用のリンクを送ります。</p>
+                        </div>
+                    ) : (
+                        <div className="mb-6">
+                            <Segmented
+                                value={mode}
+                                onChange={switchMode}
+                                options={[
+                                    ['signin', 'ログイン'],
+                                    ['signup', '新規登録'],
+                                ]}
+                            />
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-white/50 mb-1.5">メールアドレス</label>
+                            <label htmlFor="email" className="block text-[12px] font-medium text-ink-2 mb-2 px-1">
+                                メールアドレス
+                            </label>
                             <input
+                                id="email"
                                 type="email"
+                                autoComplete="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/25 focus:outline-none focus:border-indigo-400/60 transition-all"
+                                className={`${inputClass} bg-canvas`}
                                 placeholder="you@example.com"
                             />
                         </div>
 
                         {mode !== 'reset' && (
                             <div>
-                                <label className="block text-sm font-medium text-white/50 mb-1.5">パスワード</label>
+                                <div className="flex items-baseline justify-between mb-2 px-1">
+                                    <label htmlFor="password" className="block text-[12px] font-medium text-ink-2">
+                                        パスワード
+                                    </label>
+                                    {mode === 'signin' && (
+                                        <button type="button" onClick={() => switchMode('reset')} className="text-[12px] text-ink-3 hover:text-ink">
+                                            お忘れですか？
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="relative">
                                     <input
+                                        id="password"
                                         type={showPass ? 'text' : 'password'}
+                                        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/25 focus:outline-none focus:border-indigo-400/60 transition-all"
-                                        placeholder="••••••••"
+                                        minLength={mode === 'signup' ? 6 : undefined}
+                                        className={`${inputClass} bg-canvas pr-12`}
+                                        placeholder={mode === 'signup' ? '6文字以上' : ''}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPass(!showPass)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                                        aria-label={showPass ? 'パスワードを隠す' : 'パスワードを表示'}
+                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink"
                                     >
-                                        {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        {showPass ? <EyeOff size={17} strokeWidth={1.6} /> : <Eye size={17} strokeWidth={1.6} />}
                                     </button>
                                 </div>
                             </div>
                         )}
 
                         {error && (
-                            <p className="text-rose-400 text-sm bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2">{error}</p>
+                            <p className="text-alert text-[13px] bg-alert-soft rounded-xl px-3.5 py-2.5" role="alert">
+                                {error}
+                            </p>
                         )}
                         {message && (
-                            <p className="text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">{message}</p>
+                            <p className="text-accent text-[13px] bg-accent-soft rounded-xl px-3.5 py-2.5" role="status">
+                                {message}
+                            </p>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-500/25 mt-2"
-                        >
-                            {loading ? '処理中...' : mode === 'signin' ? 'ログイン' : mode === 'signup' ? 'アカウント作成' : '送信'}
+                        <button type="submit" disabled={loading} className={`${primaryButtonClass} w-full !mt-6`}>
+                            {loading
+                                ? '処理中…'
+                                : mode === 'signin'
+                                  ? 'ログイン'
+                                  : mode === 'signup'
+                                    ? 'アカウントを作成'
+                                    : '再設定メールを送る'}
                         </button>
                     </form>
 
-                    {/* Mode switches */}
-                    <div className="mt-5 space-y-2 text-center text-sm">
-                        {mode === 'signin' && (
-                            <>
-                                <button onClick={() => { setMode('reset'); setError(''); setMessage(''); }} className="text-white/40 hover:text-white/70 transition-colors block w-full">
-                                    パスワードを忘れた方はこちら
-                                </button>
-                                <button onClick={() => { setMode('signup'); setError(''); setMessage(''); }} className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-                                    アカウントを作成する →
-                                </button>
-                            </>
-                        )}
-                        {mode === 'signup' && (
-                            <button onClick={() => { setMode('signin'); setError(''); setMessage(''); }} className="text-white/40 hover:text-white/70 transition-colors">
-                                ← ログインに戻る
-                            </button>
-                        )}
-                        {mode === 'reset' && (
-                            <button onClick={() => { setMode('signin'); setError(''); setMessage(''); }} className="text-white/40 hover:text-white/70 transition-colors">
-                                ← ログインに戻る
-                            </button>
-                        )}
-                    </div>
+                    {mode === 'reset' && (
+                        <button onClick={() => switchMode('signin')} className="mt-5 w-full text-center text-[13px] text-ink-2 hover:text-ink">
+                            ログインに戻る
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

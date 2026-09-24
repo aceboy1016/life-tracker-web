@@ -1,110 +1,115 @@
 'use client';
 
-import { formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
+import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { LifeEvent, CATEGORY_CONFIG } from '@/types';
-import { CheckCircle, Trash2, Clock } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { LifeEvent } from '@/types';
+import { IconTile } from '@/lib/icons';
+import { daysBetween, formatElapsed, formatSpan, getUrgency, toYMD, upcomingOccasions } from '@/lib/time';
+import { Pill } from '@/components/ui';
 
-interface EventCardProps {
-    event: LifeEvent;
-    onMark: (id: string) => void;
-    onDelete: (id: string) => void;
-    onClick: (event: LifeEvent) => void;
-}
+const rowClass = 'w-full flex items-center gap-3.5 px-4 py-3.5 text-left hover:bg-surface-2/60 focus-visible:outline-none focus-visible:bg-surface-2';
 
-function getElapsedStyle(date: Date | null): { text: string; urgency: 'fresh' | 'ok' | 'warn' | 'danger' } {
-    if (!date) return { text: '未実行', urgency: 'danger' };
-    const hours = (Date.now() - date.getTime()) / 1000 / 3600;
-    const text = formatDistanceToNow(date, { addSuffix: true, locale: ja });
-    if (hours < 24) return { text, urgency: 'fresh' };
-    if (hours < 72) return { text, urgency: 'ok' };
-    if (hours < 168) return { text, urgency: 'warn' };
-    return { text, urgency: 'danger' };
-}
-
-const urgencyRing: Record<string, string> = {
-    fresh: 'ring-1 ring-emerald-400/40',
-    ok: 'ring-1 ring-blue-400/30',
-    warn: 'ring-1 ring-amber-400/40',
-    danger: 'ring-1 ring-rose-400/40',
-};
-
-const urgencyDot: Record<string, string> = {
-    fresh: 'bg-emerald-400',
-    ok: 'bg-blue-400',
-    warn: 'bg-amber-400',
-    danger: 'bg-rose-500',
-};
-
-const urgencyTimeColor: Record<string, string> = {
-    fresh: 'text-emerald-400',
-    ok: 'text-blue-400',
-    warn: 'text-amber-400',
-    danger: 'text-rose-400',
-};
-
-export default function EventCard({ event, onMark, onDelete, onClick }: EventCardProps) {
-    const cat = CATEGORY_CONFIG[event.category] ?? CATEGORY_CONFIG['general'];
-    const { text: elapsed, urgency } = getElapsedStyle(event.lastExecutedDate);
+export function MilestoneRow({ event, now, onOpen }: { event: LifeEvent; now: number; onOpen: (e: LifeEvent) => void }) {
+    const date = event.lastExecutedDate;
+    const today = toYMD(now);
+    const origin = date ? toYMD(date) : null;
+    const days = origin ? daysBetween(origin, today) : null;
+    const next = date ? upcomingOccasions(date, now)[0] : undefined;
 
     return (
-        <div
-            className={`relative group bg-gray-900/60 backdrop-blur-sm border border-white/8 rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:bg-gray-800/70 hover:border-white/15 hover:-translate-y-0.5 hover:shadow-xl ${urgencyRing[urgency]}`}
-            onClick={() => onClick(event)}
-        >
-            {/* Category badge */}
-            <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xl flex-shrink-0">{cat.emoji}</span>
-                    <div className="min-w-0">
-                        <span className="text-xs font-medium text-white/40 uppercase tracking-widest block">
-                            {cat.label}
-                        </span>
-                        <h3 className="text-white font-semibold text-base leading-tight truncate">
-                            {event.name}
-                        </h3>
-                    </div>
-                </div>
-                {/* Urgency dot */}
-                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${urgencyDot[urgency]} shadow-lg`} />
-            </div>
-
-            {/* Time elapsed */}
-            <div className={`flex items-center gap-1.5 text-sm font-medium ${urgencyTimeColor[urgency]}`}>
-                <Clock size={13} className="flex-shrink-0" />
-                <span>{elapsed}</span>
-            </div>
-
-            {/* Notes */}
-            {event.notes && (
-                <p className="mt-2 text-xs text-white/40 line-clamp-2 leading-relaxed">
-                    {event.notes}
+        <button type="button" onClick={() => onOpen(event)} className={rowClass}>
+            <IconTile name={event.icon} size={42} />
+            <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-medium text-ink truncate">{event.name}</p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-ink-3">
+                    <span className="truncate">{date ? format(date, 'yyyy.M.d') : '日付なし'}</span>
+                    {next && next.inDays <= 30 && (
+                        <Pill tone="accent">{next.inDays === 0 ? `今日で${next.label}` : `あと${next.inDays}日で${next.label}`}</Pill>
+                    )}
                 </p>
-            )}
-
-            {/* Actions */}
-            <div className="absolute right-3 bottom-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onMark(event.id);
-                    }}
-                    className="w-9 h-9 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 transition-all active:scale-95"
-                    title="今やった！"
-                >
-                    <CheckCircle size={16} />
-                </button>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(event.id);
-                    }}
-                    className="w-9 h-9 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 transition-all active:scale-95"
-                    title="削除"
-                >
-                    <Trash2 size={16} />
-                </button>
             </div>
+            {days !== null && days >= 0 && origin && (
+                <div className="shrink-0 text-right">
+                    <p className="text-ink leading-none tabular-nums">
+                        <span className="text-[22px] font-semibold tracking-tight">{days.toLocaleString('ja-JP')}</span>
+                        <span className="text-[12px] text-ink-2 ml-0.5">日</span>
+                    </p>
+                    <p className="text-[11px] text-ink-3 mt-1">{formatSpan(origin, today)}</p>
+                </div>
+            )}
+            {days !== null && days < 0 && (
+                <div className="shrink-0 text-right">
+                    <p className="text-[12px] text-ink-3">あと</p>
+                    <p className="text-ink leading-none tabular-nums">
+                        <span className="text-[22px] font-semibold tracking-tight">{(-days).toLocaleString('ja-JP')}</span>
+                        <span className="text-[12px] text-ink-2 ml-0.5">日</span>
+                    </p>
+                </div>
+            )}
+        </button>
+    );
+}
+
+export function RoutineRow({
+    event,
+    now,
+    onOpen,
+    onMark,
+}: {
+    event: LifeEvent;
+    now: number;
+    onOpen: (e: LifeEvent) => void;
+    onMark: (e: LifeEvent) => void;
+}) {
+    const urgency = getUrgency(event.lastExecutedDate, now);
+    const { value, unit } = formatElapsed(event.lastExecutedDate, now);
+    const [justDone, setJustDone] = useState(false);
+
+    return (
+        <div className="flex items-center hover:bg-surface-2/60">
+            <button type="button" onClick={() => onOpen(event)} className={`${rowClass} hover:bg-transparent pr-2`}>
+                <IconTile name={event.icon} size={42} />
+                <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-medium text-ink truncate">{event.name}</p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-ink-3">
+                        <span className="truncate">
+                            {event.lastExecutedDate ? `前回 ${format(event.lastExecutedDate, 'M月d日', { locale: ja })}` : 'まだ記録なし'}
+                        </span>
+                        {urgency === 'over' && <Pill tone="alert">ご無沙汰</Pill>}
+                    </p>
+                </div>
+                <p className="shrink-0 text-right text-ink leading-none tabular-nums whitespace-nowrap">
+                    {event.lastExecutedDate ? (
+                        unit ? (
+                            <>
+                                <span className="text-[22px] font-semibold tracking-tight">{value}</span>
+                                <span className="text-[12px] text-ink-2 ml-0.5">{unit}前</span>
+                            </>
+                        ) : (
+                            <span className="text-[13px] text-ink-2">{value}</span>
+                        )
+                    ) : (
+                        <span className="text-[13px] text-ink-3">—</span>
+                    )}
+                </p>
+            </button>
+            <button
+                type="button"
+                onClick={() => {
+                    setJustDone(true);
+                    setTimeout(() => setJustDone(false), 1200);
+                    onMark(event);
+                }}
+                aria-label={`「${event.name}」を今やったことにする`}
+                title="今やった"
+                className={`mr-3.5 w-9 h-9 shrink-0 rounded-full border flex items-center justify-center ${
+                    justDone ? 'bg-accent border-accent text-white' : 'border-line text-ink-3 hover:text-accent hover:border-accent'
+                }`}
+            >
+                <Check size={17} strokeWidth={2} />
+            </button>
         </div>
     );
 }

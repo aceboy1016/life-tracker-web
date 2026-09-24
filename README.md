@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LifeTracker (Web)
 
-## Getting Started
+「あの日から何日」「前回はいつ」「誰に何をもらったか」をひとつの場所で確認できるアプリ。Next.js + Firebase、Vercel にデプロイ。
 
-First, run the development server:
+- **記念日・できごと**（`kind: 'milestone'`）：その日からの日数、次の記念日・節目の日（100日、1,000日…）
+- **くり返すこと**（`kind: 'routine'`）：前回からの経過、1週間以上でご無沙汰表示
+- **誕生日**（`users/{uid}/birthdays`）：次の誕生日まで何日・何歳になるか。当日と、人ごとに選んだ日（前日／3日前／1週間前）に通知
+- **いただきもの**（`users/{uid}/gifts`）：くれた人ごとの一覧とお返し状況
+
+## 開発
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` に Firebase の Web 設定（`NEXT_PUBLIC_FIREBASE_*`）を入れてください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 通知（毎朝 8:00 ごろのまとめ通知）
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+誕生日（当日と事前リマインド）、今日が記念日・節目の項目、1週間以上やっていない項目を、毎朝 8:00（JST）ごろ Web Push で 1 通にまとめて送ります（該当がない日は送りません）。
+スマホではホーム画面に追加したアプリから「設定 → この端末で受け取る」で有効になります（iPhone は iOS 16.4 以降・ホーム画面に追加が必須）。
 
-## Learn More
+### 必要な環境変数（Vercel → Settings → Environment Variables）
 
-To learn more about Next.js, take a look at the following resources:
+| 変数 | 取得場所 |
+| --- | --- |
+| `NEXT_PUBLIC_FIREBASE_VAPID_KEY` | Firebase コンソール → プロジェクトの設定 → Cloud Messaging → ウェブプッシュ証明書 →「鍵ペアを生成」した公開鍵 |
+| `FIREBASE_SERVICE_ACCOUNT` | Firebase コンソール → プロジェクトの設定 → サービスアカウント →「新しい秘密鍵を生成」で落ちる JSON の中身を 1 行で貼り付け |
+| `CRON_SECRET` | 任意のランダム文字列（例: `openssl rand -hex 32`）。Vercel Cron が自動で `Authorization` ヘッダーに付けます |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+設定後に再デプロイしてください。送信は `vercel.json` の Cron（`0 23 * * *` UTC = 8:00 JST）が `/api/cron/daily-digest` を呼びます。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 仕組み
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `public/sw.js` — プッシュを受けて通知を表示する Service Worker
+- `src/lib/notifications.ts` — 通知の許可・FCM トークン取得（`users/{uid}/fcmTokens/{token}` に保存）
+- `src/app/api/cron/daily-digest` — 毎朝のまとめ通知を送信（無効になったトークンは自動削除）
+- `src/app/api/notifications/test` — 設定画面の「テスト通知を送る」

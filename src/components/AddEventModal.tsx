@@ -1,146 +1,143 @@
 'use client';
 
 import { useState } from 'react';
-import { EventCategory, CATEGORY_CONFIG } from '@/types';
-import { X } from 'lucide-react';
+import { EventKind } from '@/types';
+import type { EventInput } from '@/hooks/useEvents';
+import { fromDateInputValue, toDateInputValue, toLocalInputValue } from '@/lib/time';
+import { IconPicker, Label, Segmented, Sheet, SheetTitle, inputClass, primaryButtonClass } from '@/components/ui';
 
 interface AddEventModalProps {
+    initial?: { name: string; kind: EventKind; icon: string };
     onClose: () => void;
-    onAdd: (data: {
-        name: string;
-        category: EventCategory;
-        notes: string;
-        lastExecutedDate: Date | null;
-    }) => Promise<void>;
+    onAdd: (data: EventInput) => Promise<void>;
 }
 
-const CATEGORIES = Object.entries(CATEGORY_CONFIG) as [EventCategory, typeof CATEGORY_CONFIG[EventCategory]][];
+type LastDone = 'never' | 'now' | 'yesterday' | 'custom';
 
-export default function AddEventModal({ onClose, onAdd }: AddEventModalProps) {
-    const [name, setName] = useState('');
-    const [category, setCategory] = useState<EventCategory>('general');
+const LAST_DONE_OPTIONS: [LastDone, string][] = [
+    ['never', 'まだ'],
+    ['now', '今日'],
+    ['yesterday', '昨日'],
+    ['custom', '日付指定'],
+];
+
+export default function AddEventModal({ initial, onClose, onAdd }: AddEventModalProps) {
+    const [kind, setKind] = useState<EventKind>(initial?.kind ?? 'milestone');
+    const [name, setName] = useState(initial?.name ?? '');
+    const [icon, setIcon] = useState(initial?.icon ?? 'star');
     const [notes, setNotes] = useState('');
-    const [dateStr, setDateStr] = useState('');
+    const [milestoneDate, setMilestoneDate] = useState(() => toDateInputValue(new Date()));
+    const [lastDone, setLastDone] = useState<LastDone>('never');
+    const [dateStr, setDateStr] = useState(() => toLocalInputValue(new Date()));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const resolveDate = (): Date | null => {
+        if (kind === 'milestone') return milestoneDate ? fromDateInputValue(milestoneDate) : null;
+        if (lastDone === 'now') return new Date();
+        if (lastDone === 'yesterday') return new Date(Date.now() - 24 * 3600_000);
+        if (lastDone === 'custom' && dateStr) return new Date(dateStr);
+        return null;
+    };
+
+    const canSubmit = name.trim() && (kind === 'routine' || milestoneDate);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) { setError('名前を入力してください'); return; }
+        if (!canSubmit) return;
         setLoading(true);
         try {
-            await onAdd({
-                name: name.trim(),
-                category,
-                notes: notes.trim(),
-                lastExecutedDate: dateStr ? new Date(dateStr) : null,
-            });
+            await onAdd({ name: name.trim(), kind, icon, notes: notes.trim(), lastExecutedDate: resolveDate() });
             onClose();
         } catch {
-            setError('保存に失敗しました');
+            setError('保存できませんでした。もう一度お試しください');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-                onClick={onClose}
-            />
-            {/* Modal */}
-            <div className="relative w-full sm:max-w-lg bg-gray-900 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/8">
-                    <h2 className="text-xl font-bold text-white">新規イベント追加</h2>
-                    <button
-                        onClick={onClose}
-                        className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white/60 hover:text-white transition-all"
-                    >
-                        <X size={18} />
-                    </button>
+        <Sheet title={<SheetTitle title="新しく追加" />} onClose={onClose}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <Segmented
+                        value={kind}
+                        onChange={setKind}
+                        options={[
+                            ['milestone', '記念日・できごと'],
+                            ['routine', 'くり返すこと'],
+                        ]}
+                    />
+                    <p className="text-[12px] text-ink-3 mt-2 px-1">
+                        {kind === 'milestone'
+                            ? 'プロポーズ、結婚式、引っ越しなど。その日からの日数と記念日がわかります。'
+                            : '散髪、歯医者など。前回からの日数がわかり、やったらチェックします。'}
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                    {/* Name */}
+                <div>
+                    <Label>名前</Label>
+                    <input
+                        type="text"
+                        value={name}
+                        autoFocus
+                        onChange={(e) => {
+                            setName(e.target.value);
+                            setError('');
+                        }}
+                        placeholder={kind === 'milestone' ? '例：プロポーズした日' : '例：髪を切る'}
+                        className={inputClass}
+                    />
+                </div>
+
+                {kind === 'milestone' ? (
                     <div>
-                        <label className="block text-sm font-medium text-white/60 mb-1.5">
-                            イベント名 <span className="text-rose-400">*</span>
-                        </label>
+                        <Label>日付</Label>
                         <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="例：ジム、読書、薬を飲む..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-indigo-400/60 focus:bg-white/8 transition-all"
+                            type="date"
+                            value={milestoneDate}
+                            onChange={(e) => setMilestoneDate(e.target.value)}
+                            className={inputClass}
                         />
                     </div>
-
-                    {/* Category */}
+                ) : (
                     <div>
-                        <label className="block text-sm font-medium text-white/60 mb-2">
-                            カテゴリ
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {CATEGORIES.map(([key, cfg]) => (
-                                <button
-                                    key={key}
-                                    type="button"
-                                    onClick={() => setCategory(key)}
-                                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${category === key
-                                            ? 'bg-indigo-500/30 border-indigo-400/60 text-white'
-                                            : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80'
-                                        }`}
-                                >
-                                    <span>{cfg.emoji}</span>
-                                    <span className="truncate">{cfg.label}</span>
-                                </button>
-                            ))}
-                        </div>
+                        <Label>最後にやった日</Label>
+                        <Segmented value={lastDone} onChange={setLastDone} options={LAST_DONE_OPTIONS} />
+                        {lastDone === 'custom' && (
+                            <input
+                                type="datetime-local"
+                                value={dateStr}
+                                max={toLocalInputValue(new Date())}
+                                onChange={(e) => setDateStr(e.target.value)}
+                                className={`${inputClass} mt-2`}
+                            />
+                        )}
                     </div>
+                )}
 
-                    {/* Last executed date */}
-                    <div>
-                        <label className="block text-sm font-medium text-white/60 mb-1.5">
-                            最終実行日時（任意）
-                        </label>
-                        <input
-                            type="datetime-local"
-                            value={dateStr}
-                            onChange={(e) => setDateStr(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80 focus:outline-none focus:border-indigo-400/60 transition-all [color-scheme:dark]"
-                        />
-                    </div>
+                <div>
+                    <Label>アイコン</Label>
+                    <IconPicker value={icon} onChange={setIcon} />
+                </div>
 
-                    {/* Notes */}
-                    <div>
-                        <label className="block text-sm font-medium text-white/60 mb-1.5">
-                            メモ（任意）
-                        </label>
-                        <textarea
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            rows={2}
-                            placeholder="補足情報などを入力..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-indigo-400/60 focus:bg-white/8 transition-all resize-none"
-                        />
-                    </div>
+                <div>
+                    <Label hint="任意">メモ</Label>
+                    <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows={2}
+                        placeholder="場所、一緒にいた人など"
+                        className={`${inputClass} resize-none`}
+                    />
+                </div>
 
-                    {error && (
-                        <p className="text-rose-400 text-sm">{error}</p>
-                    )}
+                {error && <p className="text-alert text-[13px] px-1">{error}</p>}
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl transition-all active:scale-98 shadow-lg shadow-indigo-500/25"
-                    >
-                        {loading ? '保存中...' : '追加する'}
-                    </button>
-                </form>
-            </div>
-        </div>
+                <button type="submit" disabled={loading || !canSubmit} className={`${primaryButtonClass} w-full`}>
+                    {loading ? '保存中…' : '追加する'}
+                </button>
+            </form>
+        </Sheet>
     );
 }

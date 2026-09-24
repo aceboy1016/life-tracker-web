@@ -7,74 +7,60 @@ export type EventCategory =
     | 'household'
     | 'electronics';
 
+/** milestone: a one-off date to count from (proposal, wedding). routine: something done repeatedly (haircut). */
+export type EventKind = 'milestone' | 'routine';
+
 export interface LifeEvent {
     id: string;
     name: string;
+    kind: EventKind;
+    /** For routines: the last time it was done. For milestones: the date it happened. */
     lastExecutedDate: Date | null;
     category: EventCategory;
+    icon: string;
     notes: string;
     userId: string;
     createdAt?: Date;
 }
 
-export const CATEGORY_CONFIG: Record<
-    EventCategory,
-    { label: string; emoji: string; color: string; bgColor: string; darkColor: string; darkBg: string }
-> = {
-    general: {
-        label: 'その他',
-        emoji: '📌',
-        color: 'text-slate-700',
-        bgColor: 'bg-slate-100',
-        darkColor: 'text-slate-300',
-        darkBg: 'bg-slate-800',
-    },
-    health: {
-        label: '健康',
-        emoji: '❤️',
-        color: 'text-rose-700',
-        bgColor: 'bg-rose-100',
-        darkColor: 'text-rose-300',
-        darkBg: 'bg-rose-900/40',
-    },
-    work: {
-        label: '仕事',
-        emoji: '💼',
-        color: 'text-blue-700',
-        bgColor: 'bg-blue-100',
-        darkColor: 'text-blue-300',
-        darkBg: 'bg-blue-900/40',
-    },
-    hobby: {
-        label: '趣味',
-        emoji: '🎯',
-        color: 'text-purple-700',
-        bgColor: 'bg-purple-100',
-        darkColor: 'text-purple-300',
-        darkBg: 'bg-purple-900/40',
-    },
-    social: {
-        label: 'ソーシャル',
-        emoji: '👥',
-        color: 'text-amber-700',
-        bgColor: 'bg-amber-100',
-        darkColor: 'text-amber-300',
-        darkBg: 'bg-amber-900/40',
-    },
-    household: {
-        label: '家事',
-        emoji: '🏠',
-        color: 'text-emerald-700',
-        bgColor: 'bg-emerald-100',
-        darkColor: 'text-emerald-300',
-        darkBg: 'bg-emerald-900/40',
-    },
-    electronics: {
-        label: '電子機器',
-        emoji: '💻',
-        color: 'text-cyan-700',
-        bgColor: 'bg-cyan-100',
-        darkColor: 'text-cyan-300',
-        darkBg: 'bg-cyan-900/40',
-    },
-};
+export interface Gift {
+    id: string;
+    from: string;
+    occasion: string;
+    item: string;
+    amount: number | null;
+    date: Date;
+    returned: boolean;
+    returnNote: string;
+    notes: string;
+    createdAt?: Date;
+}
+
+export type GiftInput = Omit<Gift, 'id' | 'createdAt'>;
+
+export const GIFT_OCCASIONS = ['結婚', '出産', '誕生日', '引越し・新築', '就職・昇進', 'お見舞い', 'お中元・お歳暮', 'その他'];
+
+export interface Birthday {
+    id: string;
+    name: string;
+    month: number; // 1-12
+    day: number;
+    /** Birth year if known, for showing age. */
+    year: number | null;
+    relation: string;
+    /** Extra reminder this many days before (0 = on the day only). */
+    remindDaysBefore: number;
+    notes: string;
+    createdAt?: Date;
+}
+
+export type BirthdayInput = Omit<Birthday, 'id' | 'createdAt'>;
+
+export const BIRTHDAY_RELATIONS = ['家族', 'パートナー', '友人', '仕事', 'その他'];
+
+export const REMIND_OPTIONS: [string, string][] = [
+    ['0', '当日のみ'],
+    ['1', '前日'],
+    ['3', '3日前'],
+    ['7', '1週間前'],
+];
