@@ -34,6 +34,7 @@ function daysInMonth(month: number) {
 export default function BirthdaySheet({ birthday, gifts, now, onClose, onSave, onDelete }: BirthdaySheetProps) {
     const [editing, setEditing] = useState(!birthday);
     const [name, setName] = useState(birthday?.name ?? '');
+    const [reading, setReading] = useState(birthday?.reading ?? '');
     const [month, setMonth] = useState(birthday?.month ?? new Date(now).getMonth() + 1);
     const [day, setDay] = useState(birthday?.day ?? new Date(now).getDate());
     const [year, setYear] = useState(birthday?.year ? String(birthday.year) : '');
@@ -53,7 +54,7 @@ export default function BirthdaySheet({ birthday, gifts, now, onClose, onSave, o
                     <div className="flex items-center gap-3">
                         <Avatar name={birthday.name} size={44} />
                         <div className="min-w-0">
-                            <p className="text-[12px] text-ink-3">{birthday.relation || '誕生日'}</p>
+                            <p className="text-[12px] text-ink-3 truncate">{[birthday.reading, birthday.relation].filter(Boolean).join(' · ') || '誕生日'}</p>
                             <h2 className="text-[19px] font-bold text-ink truncate">{birthday.name}</h2>
                         </div>
                     </div>
@@ -150,6 +151,7 @@ export default function BirthdaySheet({ birthday, gifts, now, onClose, onSave, o
         try {
             await onSave({
                 name: name.trim(),
+                reading: reading.trim(),
                 month,
                 day,
                 year: parsedYear,
@@ -178,6 +180,13 @@ export default function BirthdaySheet({ birthday, gifts, now, onClose, onSave, o
                         autoFocus={!birthday}
                         placeholder="例：田中 太郎"
                         className={inputClass}
+                    />
+                    <input
+                        value={reading}
+                        onChange={(e) => setReading(e.target.value)}
+                        placeholder="フリガナ（任意）"
+                        aria-label="フリガナ"
+                        className={`${inputClass} mt-2`}
                     />
                 </div>
 

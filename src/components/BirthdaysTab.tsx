@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Search, X } from 'lucide-react';
 import { Birthday } from '@/types';
 import { Avatar, IconTile } from '@/lib/icons';
 import { nextBirthday, NextBirthday } from '@/lib/time';
@@ -17,12 +18,15 @@ export default function BirthdaysTab({
     now: number;
     onOpen: (b: Birthday) => void;
 }) {
+    const [search, setSearch] = useState('');
+    const q = search.trim().toLowerCase().replace(/\s/g, '');
     const sorted = useMemo(
         () =>
             birthdays
+                .filter((b) => !q || `${b.name}${b.reading}${b.relation}`.toLowerCase().replace(/\s/g, '').includes(q))
                 .map((b) => ({ b, next: nextBirthday(b, now) }))
                 .sort((x, y) => x.next.inDays - y.next.inDays || x.b.name.localeCompare(y.b.name, 'ja')),
-        [birthdays, now]
+        [birthdays, now, q]
     );
 
     // Group by the month of the next occurrence, in upcoming order.
@@ -62,38 +66,73 @@ export default function BirthdaysTab({
     const soonest = sorted[0];
     const todays = sorted.filter((x) => x.next.inDays === 0);
 
+    const searchBox = (
+        <div className="relative">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3" />
+            <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="名前・フリガナで検索"
+                className="w-full bg-surface border border-line rounded-2xl pl-10 pr-10 py-2.5 text-base text-ink placeholder:text-ink-3 focus:outline-none focus:border-ink/25 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {search && (
+                <button
+                    onClick={() => setSearch('')}
+                    aria-label="検索をクリア"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-2 text-ink-2 flex items-center justify-center"
+                >
+                    <X size={13} />
+                </button>
+            )}
+        </div>
+    );
+
+    if (!soonest) {
+        return (
+            <div className="space-y-7">
+                {searchBox}
+                <p className="text-center text-[14px] text-ink-3 py-12">該当する人はいません</p>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-7">
-            <div className={`${cardClass} overflow-hidden`}>
-                {todays.length > 0 ? (
-                    <div className="bg-accent-soft divide-y divide-line">
-                        {todays.map(({ b, next }) => (
-                            <button key={b.id} onClick={() => onOpen(b)} className="w-full flex items-center gap-3.5 px-4 py-4 text-left">
-                                <Avatar name={b.name} size={44} />
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[12px] text-accent">今日は</p>
-                                    <p className="text-[15px] font-medium text-ink truncate">{b.name}の誕生日</p>
-                                </div>
-                                {next.age !== null && <p className="text-[22px] font-semibold text-ink tracking-tight">{next.age}歳</p>}
-                            </button>
-                        ))}
-                    </div>
-                ) : (
-                    <button onClick={() => onOpen(soonest.b)} className="w-full flex items-center gap-3.5 px-4 py-4 text-left">
-                        <Avatar name={soonest.b.name} size={44} />
-                        <div className="min-w-0 flex-1">
-                            <p className="text-[12px] text-ink-3">次の誕生日</p>
-                            <p className="text-[15px] font-medium text-ink truncate">{soonest.b.name}</p>
-                            <p className="text-[12px] text-ink-3 mt-0.5">{describe(soonest.next)}</p>
+            {q === '' && (
+                <div className={`${cardClass} overflow-hidden`}>
+                    {todays.length > 0 ? (
+                        <div className="bg-accent-soft divide-y divide-line">
+                            {todays.map(({ b, next }) => (
+                                <button key={b.id} onClick={() => onOpen(b)} className="w-full flex items-center gap-3.5 px-4 py-4 text-left">
+                                    <Avatar name={b.name} size={44} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[12px] text-accent">今日は</p>
+                                        <p className="text-[15px] font-medium text-ink truncate">{b.name}の誕生日</p>
+                                    </div>
+                                    {next.age !== null && <p className="text-[22px] font-semibold text-ink tracking-tight">{next.age}歳</p>}
+                                </button>
+                            ))}
                         </div>
-                        <p className="text-ink tabular-nums shrink-0">
-                            <span className="text-[12px] text-ink-2 mr-0.5">あと</span>
-                            <span className="text-[26px] font-semibold tracking-tight">{soonest.next.inDays}</span>
-                            <span className="text-[12px] text-ink-2 ml-0.5">日</span>
-                        </p>
-                    </button>
-                )}
-            </div>
+                    ) : (
+                        <button onClick={() => onOpen(soonest.b)} className="w-full flex items-center gap-3.5 px-4 py-4 text-left">
+                            <Avatar name={soonest.b.name} size={44} />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[12px] text-ink-3">次の誕生日</p>
+                                <p className="text-[15px] font-medium text-ink truncate">{soonest.b.name}</p>
+                                <p className="text-[12px] text-ink-3 mt-0.5">{describe(soonest.next)}</p>
+                            </div>
+                            <p className="text-ink tabular-nums shrink-0">
+                                <span className="text-[12px] text-ink-2 mr-0.5">あと</span>
+                                <span className="text-[26px] font-semibold tracking-tight">{soonest.next.inDays}</span>
+                                <span className="text-[12px] text-ink-2 ml-0.5">日</span>
+                            </p>
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {birthdays.length > 8 && searchBox}
 
             {groups.map((group) => (
                 <section key={group.key}>
